@@ -35,4 +35,5 @@ Makefile
 cmake_install.cmake
 
 * Output data.
+*.pvtu
 *.vtu
