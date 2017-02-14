@@ -33,7 +33,8 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 cmake_install.cmake
+*/*~
 
-* Output data.
+* Output generated data.
 *.pvtu
 *.vtu
