@@ -2,6 +2,7 @@
 
 
 #include <deal.II/base/function.h>
+#include <deal.II/base/function_parser.h>
 #include <deal.II/base/logstream.h>
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/quadrature_lib.h>
@@ -18,15 +19,15 @@
 #include <deal.II/lac/sparsity_tools.h>
 #include <deal.II/lac/vector.h>
 
-#include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/tria.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/grid_out.h>
 
-#include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
+#include <deal.II/distributed/tria.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
@@ -39,7 +40,6 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/matrix_tools.h>
-//#include <deal.II/numerics/matrix_creator.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <fstream>
@@ -100,6 +100,12 @@ namespace mandy
      */
     void output_results (const unsigned int cycle);
 
+    /**
+     * Refine grid based on Kelly's error estimator working on the
+     * material id (solution vector).
+     */
+    void refine_grid ();
+    
     /**
      * MPI communicator.
      */
@@ -303,7 +309,13 @@ namespace mandy
     dealii::Vector<double>     cell_rhs (dofs_per_cell);
     
     std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
-
+ 
+    dealii::FunctionParser<dim> material_id;
+    material_id.initialize (dealii::FunctionParser<dim>::default_variable_names (),
+			    parameters.get ("MaterialID"),
+			    typename dealii::FunctionParser<dim>::ConstMap ());
+    std::vector<double> material_id_values (n_q_points);
+        
     // Loop over all cells and insert the corresponding matrix entried.
     typename dealii::DoFHandler<dim>::active_cell_iterator
       cell = dof_handler.begin_active (),
@@ -316,6 +328,10 @@ namespace mandy
           cell_rhs    = 0;
 	  
           fe_values.reinit (cell);
+
+	  material_id.value_list (fe_values.get_quadrature_points (),
+				  material_id_values);
+
 	  
           for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    for (unsigned int j=0; j<dofs_per_cell; ++j)
@@ -329,8 +345,9 @@ namespace mandy
 		       	fe_values.JxW (q_point);
 		    }
 
-		  // Build the local rhs vector.
+		  // Build the local right hand side vector.
 		  cell_rhs (j) +=
+		    material_id_values[q_point]       *
 		    fe_values.shape_value (j,q_point) *
 		    fe_values.JxW (q_point);
 	      }
@@ -393,19 +410,64 @@ namespace mandy
     dealii::Vector<float> subdomain (triangulation.n_active_cells ());
     for (unsigned int i=0; i<subdomain.size(); ++i)
       subdomain (i) = triangulation.locally_owned_subdomain ();
-
     data_out.add_data_vector (subdomain, "subdomain");
+
     data_out.build_patches ();
     
-    const std::string filename = ("material_id-" +
+    const std::string filename = ("solution-" +
                                   dealii::Utilities::int_to_string (cycle, 2) +
                                   "." +
                                   dealii::Utilities::int_to_string
                                   (triangulation.locally_owned_subdomain (), 4));
 
     std::ofstream output ((filename + ".vtu").c_str ());
-    data_out.write_vtu (output);    
+    data_out.write_vtu (output);
+
+    if (dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 1)
+      {
+	std::vector<std::string> filenames;
+	
+	for (unsigned int i=0;
+	     i<dealii::Utilities::MPI::n_mpi_processes (mpi_communicator);
+	     ++i)
+	  filenames.push_back ("solution-" +
+			       dealii::Utilities::int_to_string (cycle, 2) +
+			       "." +
+			       dealii::Utilities::int_to_string (i, 4) +
+			       ".vtu");
+	std::ofstream master_output (("solution-" +
+				      dealii::Utilities::int_to_string (cycle, 2) +
+				      ".pvtu").c_str ());
+
+	data_out.write_pvtu_record (master_output, filenames);
+      }
   }
+
+
+  /**
+   * Refine grid based on Kelly's error estimator working on the
+   * material id (solution vector).
+   */
+  template <int dim>
+  void LinearElasticity<dim>::refine_grid ()
+  {
+    dealii::TimerOutput::Scope time (timer, "refine grid");
+
+    dealii::Vector<float> estimated_error_per_cell (triangulation.n_active_cells());
+    
+    dealii::KellyErrorEstimator<dim>::estimate (dof_handler, dealii::QGauss<dim-1>(4),
+						typename dealii::FunctionMap<dim>::type (),
+						locally_relevant_solution,
+						estimated_error_per_cell);
+
+    dealii::parallel::distributed::GridRefinement::
+      refine_and_coarsen_fixed_number (triangulation,
+				       estimated_error_per_cell,
+				       0.3, 0.03);
+
+    triangulation.execute_coarsening_and_refinement ();
+  }
+  
   
   /**
    * Run the application in the order specified.
@@ -414,18 +476,20 @@ namespace mandy
   void
   LinearElasticity<dim>::run ()
   {
-    const unsigned int n_cycles = 1;
+    const unsigned int n_cycles = 3;
     
     for (unsigned int cycle=0; cycle<n_cycles; ++cycle)
       {
-        pcout << "Cycle " << cycle << ':' << std::endl;
+        pcout << "MaterialID:: Cycle " << cycle << ':'
+	      << std::endl;
 
 	if (cycle==0)
 	  make_coarse_grid ();
 
-	pcout << "MaterialID:: "
-	      << std::endl
-	      << "   Number of active cells:       "
+	else
+	  refine_grid ();
+	
+	pcout << "   Number of active cells:       "
 	      << triangulation.n_global_active_cells ()
 	      << std::endl;
 
@@ -467,7 +531,7 @@ int main (int argc, char *argv[])
   
   try
     {
-      mandy::LinearElasticity<2> linear_elasticity ("step-4.prm");
+      mandy::LinearElasticity<3> linear_elasticity ("step-4.prm");
       linear_elasticity.run ();
     }
 
