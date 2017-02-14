@@ -36,14 +36,14 @@
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_q.h>
 
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/error_estimator.h>
+#include <deal.II/numerics/matrix_tools.h>
+//#include <deal.II/numerics/matrix_creator.h>
+#include <deal.II/numerics/vector_tools.h>
 
 #include <fstream>
 #include <iostream>
-
 
 namespace mandy
 {
@@ -83,6 +83,11 @@ namespace mandy
      * Setup system matrices and vectors.
      */
     void setup_system ();
+
+    /**
+     * Assemble system matrices and vectors.
+     */
+    void assemble_system();
     
     /**
      * MPI communicator.
@@ -252,6 +257,83 @@ namespace mandy
                           dsp, mpi_communicator);
 
   }
+
+
+  /**
+   * Assemble system matrices and vectors.
+   *
+   * TODO Ideally, we would use a function like this:
+   *
+   * dealii::MatrixCreator::create_mass_matrix (dof_handler, quadrature_rule, system_matrix, 1, constraints);
+   *
+   * however no such thing currently exists in the deal.II
+   * library. Instead, the mass matrix and right hand side vector are
+   * assmebled by hand in the usual way.
+   */
+  template <int dim>
+  void LinearElasticity<dim>::assemble_system ()
+  {
+    dealii::TimerOutput::Scope time (timer, "assemble system");
+
+    // Define set of rules and constants required for assembly of the
+    // system.
+    const dealii::QGauss<dim> quadrature_formula (3);
+
+    dealii::FEValues<dim> fe_values (fe, quadrature_formula,
+				     dealii::update_values            |
+				     dealii::update_quadrature_points |
+				     dealii::update_JxW_values);
+
+    const unsigned int dofs_per_cell = fe.dofs_per_cell;
+    const unsigned int n_q_points    = quadrature_formula.size ();
+    
+    dealii::FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
+    dealii::Vector<double>     cell_rhs (dofs_per_cell);
+    
+    std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
+
+    // Loop over all cells and insert the corresponding matrix entried.
+    typename dealii::DoFHandler<dim>::active_cell_iterator
+      cell = dof_handler.begin_active (),
+      endc = dof_handler.end ();
+
+    for (; cell!=endc; ++cell)
+      if (cell->is_locally_owned ())
+        {
+          cell_matrix = 0;
+          cell_rhs    = 0;
+	  
+          fe_values.reinit (cell);
+	  
+          for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
+	    for (unsigned int j=0; j<dofs_per_cell; ++j)
+	      {
+		for (unsigned int i=0; i<dofs_per_cell; ++i)
+		  {
+		    // Local stiffness (mass) matrix.
+		      cell_matrix (i,j) +=
+			fe_values.shape_value (i,q_point) *
+			fe_values.shape_value (j,q_point) *
+		       	fe_values.JxW (q_point);
+		    }
+
+		  // Build the local rhs vector.
+		  cell_rhs (j) +=
+		    fe_values.shape_value (j,q_point) *
+		    fe_values.JxW (q_point);
+	      }
+    
+	  cell->get_dof_indices (local_dof_indices);
+	  
+	  constraints.distribute_local_to_global (cell_matrix, cell_rhs,
+                                                  local_dof_indices,
+                                                  system_matrix, system_rhs);
+	} // cell!=endc
+    
+    system_matrix.compress (dealii::VectorOperation::add);
+    system_rhs.compress (dealii::VectorOperation::add);
+  }
+  
   
   /**
    * Run the application in the order specified.
@@ -279,6 +361,8 @@ namespace mandy
 	      << std::endl;
 
 	setup_system ();
+
+	assemble_system ();
 	
       }     // for cycle<n_cycles
   } 
