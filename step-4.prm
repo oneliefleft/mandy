@@ -1,0 +1,8 @@
+# Listing of Parameters
+# ---------------------
+# The number of times the 1-cell coarse mesh should be refined globally for
+# our computations.
+set Global mesh refinement steps         = 3
+
+# A functional description of the material ID.
+set MaterialID                           = 0

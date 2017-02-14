@@ -88,7 +88,18 @@ namespace mandy
      * Assemble system matrices and vectors.
      */
     void assemble_system();
+
+    /**
+     * Solve the linear algebra system.
+     */
+    unsigned int solve ();
     
+    /**
+     * Output results, ie., finite element functions and derived
+     * quantitites for this cycle.
+     */
+    void output_results (const unsigned int cycle);
+
     /**
      * MPI communicator.
      */
@@ -271,7 +282,8 @@ namespace mandy
    * assmebled by hand in the usual way.
    */
   template <int dim>
-  void LinearElasticity<dim>::assemble_system ()
+  void
+  LinearElasticity<dim>::assemble_system ()
   {
     dealii::TimerOutput::Scope time (timer, "assemble system");
 
@@ -298,7 +310,7 @@ namespace mandy
       endc = dof_handler.end ();
 
     for (; cell!=endc; ++cell)
-      if (cell->is_locally_owned ())
+      if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_communicator))
         {
           cell_matrix = 0;
           cell_rhs    = 0;
@@ -334,6 +346,66 @@ namespace mandy
     system_rhs.compress (dealii::VectorOperation::add);
   }
   
+
+  /**
+   * Solve the linear algebra system.
+   */
+  template <int dim>
+  unsigned int
+  LinearElasticity<dim>::solve ()
+  {
+    dealii::TimerOutput::Scope time (timer, "solve");
+    
+    dealii::PETScWrappers::MPI::Vector completely_distributed_solution (locally_owned_dofs, mpi_communicator);
+
+    // Solve using conjugate gradient method with no preconditioner
+    // (ie., system_matrix is ignored).
+    dealii::SolverControl solver_control (dof_handler.n_dofs (), 1e-06);
+    dealii::PETScWrappers::SolverCG solver (solver_control, mpi_communicator);
+    dealii::PETScWrappers::PreconditionNone preconditioner (system_matrix);
+    
+    solver.solve (system_matrix, completely_distributed_solution, system_rhs,
+		  preconditioner);
+    
+    // Ensure that all ghost elements are also copied as necessary.
+    constraints.distribute (completely_distributed_solution);
+    locally_relevant_solution = completely_distributed_solution;
+
+    // Return the number of iterations (last step) of the solve.
+    return solver_control.last_step ();
+  }
+
+
+  /**
+   * Output results, ie., finite element functions and derived
+   * quantitites for this cycle..
+   */
+  template <int dim>
+  void
+  LinearElasticity<dim>::output_results (const unsigned int cycle)
+  {
+    dealii::TimerOutput::Scope time (timer, "output_results");
+
+    dealii::DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
+    data_out.add_data_vector (locally_relevant_solution, "material_id");
+
+    dealii::Vector<float> subdomain (triangulation.n_active_cells ());
+    for (unsigned int i=0; i<subdomain.size(); ++i)
+      subdomain (i) = triangulation.locally_owned_subdomain ();
+
+    data_out.add_data_vector (subdomain, "subdomain");
+    data_out.build_patches ();
+    
+    const std::string filename = ("material_id-" +
+                                  dealii::Utilities::int_to_string (cycle, 2) +
+                                  "." +
+                                  dealii::Utilities::int_to_string
+                                  (triangulation.locally_owned_subdomain (), 4));
+
+    std::ofstream output ((filename + ".vtu").c_str ());
+    data_out.write_vtu (output);    
+  }
   
   /**
    * Run the application in the order specified.
@@ -351,7 +423,7 @@ namespace mandy
 	if (cycle==0)
 	  make_coarse_grid ();
 
-	pcout << "MaterialID: "
+	pcout << "MaterialID:: "
 	      << std::endl
 	      << "   Number of active cells:       "
 	      << triangulation.n_global_active_cells ()
@@ -363,8 +435,22 @@ namespace mandy
 	setup_system ();
 
 	assemble_system ();
+
+	const unsigned int n_iterations = solve ();
+
+	pcout << "   Solved in " << n_iterations
+	      << " iterations."
+	      << std::endl;
+
+	// Output results if the number of processes is less than or
+	// equal to 32.
+	if (dealii::Utilities::MPI::n_mpi_processes (mpi_communicator) <= 32)
+	  output_results (cycle);
+
+	// timer.print_summary ();
+        pcout << std::endl;
 	
-      }     // for cycle<n_cycles
+      } // for cycle<n_cycles
   } 
   
 } // namespace mandy
