@@ -42,6 +42,8 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <mandy/matrix_creator.h>
+
 #include <fstream>
 #include <iostream>
 
@@ -297,6 +299,10 @@ namespace mandy
     // system.
     const dealii::QGauss<dim> quadrature_formula (3);
 
+    mandy::MatrixCreator::create_mass_matrix<dim> (fe, dof_handler, quadrature_formula,
+						   system_matrix, constraints,
+						   mpi_communicator);
+    
     dealii::FEValues<dim> fe_values (fe, quadrature_formula,
 				     dealii::update_values            |
 				     dealii::update_quadrature_points |
@@ -305,8 +311,7 @@ namespace mandy
     const unsigned int dofs_per_cell = fe.dofs_per_cell;
     const unsigned int n_q_points    = quadrature_formula.size ();
     
-    dealii::FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell);
-    dealii::Vector<double>     cell_rhs (dofs_per_cell);
+    dealii::Vector<double> cell_rhs (dofs_per_cell);
     
     std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
  
@@ -324,42 +329,29 @@ namespace mandy
     for (; cell!=endc; ++cell)
       if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_communicator))
         {
-          cell_matrix = 0;
           cell_rhs    = 0;
 	  
           fe_values.reinit (cell);
 
 	  material_id.value_list (fe_values.get_quadrature_points (),
 				  material_id_values);
-
 	  
           for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    for (unsigned int j=0; j<dofs_per_cell; ++j)
 	      {
-		for (unsigned int i=0; i<dofs_per_cell; ++i)
-		  {
-		    // Local stiffness (mass) matrix.
-		      cell_matrix (i,j) +=
-			fe_values.shape_value (i,q_point) *
-			fe_values.shape_value (j,q_point) *
-		       	fe_values.JxW (q_point);
-		    }
-
-		  // Build the local right hand side vector.
-		  cell_rhs (j) +=
-		    material_id_values[q_point]       *
-		    fe_values.shape_value (j,q_point) *
-		    fe_values.JxW (q_point);
+		cell_rhs (j) +=
+		  material_id_values[q_point]       *
+		  fe_values.shape_value (j,q_point) *
+		  fe_values.JxW (q_point);
 	      }
-    
+	  
 	  cell->get_dof_indices (local_dof_indices);
 	  
-	  constraints.distribute_local_to_global (cell_matrix, cell_rhs,
+	  constraints.distribute_local_to_global (cell_rhs,
                                                   local_dof_indices,
-                                                  system_matrix, system_rhs);
+                                                  system_rhs);
 	} // cell!=endc
     
-    system_matrix.compress (dealii::VectorOperation::add);
     system_rhs.compress (dealii::VectorOperation::add);
   }
   

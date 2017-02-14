@@ -31,6 +31,11 @@
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_accessor.h>
 
+#include <deal.II/fe/fe_values.h>
+
+#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/petsc_parallel_sparse_matrix.h>
+
 #include <deal.II/base/quadrature_lib.h>
 
 namespace mandy
@@ -44,14 +49,60 @@ namespace mandy
      * pointer to a function object is zero as it is by default), the
      * coefficient is taken as being constant and equal to one.
      *
-     * The optional argument @p constraints allows to apply constraints on the
-     * resulting matrix directly. 
+     * The argument @p constraints allows to apply constraints on the
+     * resulting matrix directly.
      */
-     template<int dim, int spacedim, typename value>
+    template<int dim, int spacedim = dim>
       void
-      create_mass_matrix (const dealii::DoFHandler<dim,spacedim> &dof_handler,
-			  const Quadrature<dim>                  &quadrature)
-    {}
+      create_mass_matrix (const dealii::FESystem<dim,spacedim>     &finite_element,
+			  const dealii::DoFHandler<dim,spacedim>   &dof_handler,
+			  const dealii::Quadrature<dim>            &quadrature,
+			  dealii::PETScWrappers::MPI::SparseMatrix &matrix,
+			  dealii::ConstraintMatrix                 &constraints,
+			  MPI_Comm                                 &mpi_communicator)
+     {
+       dealii::FEValues<dim> fe_values (finite_element, quadrature,
+					dealii::update_values            |
+					dealii::update_quadrature_points |
+					dealii::update_JxW_values);
+       
+       const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
+       const unsigned int n_q_points    = quadrature.size ();
+       
+       dealii::FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell); 
+       std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
+      
+       typename dealii::DoFHandler<dim>::active_cell_iterator
+       cell = dof_handler.begin_active (),
+       endc = dof_handler.end ();
+       
+       for (; cell!=endc; ++cell)
+	 if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_communicator))
+	   {
+	     cell_matrix = 0;
+	     fe_values.reinit (cell);
+	     
+	     for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
+	       for (unsigned int j=0; j<dofs_per_cell; ++j)
+		 for (unsigned int i=0; i<dofs_per_cell; ++i)
+		   {
+		     // Local stiffness (mass) matrix.
+		     cell_matrix (i,j) +=
+		       fe_values.shape_value (i,q_point) *
+		       fe_values.shape_value (j,q_point) *
+		       fe_values.JxW (q_point);
+		   }
+	     
+	     cell->get_dof_indices (local_dof_indices);
+	     
+	     constraints.distribute_local_to_global (cell_matrix,
+						     local_dof_indices,
+						     matrix);
+	   } // cell!=endc
+       
+       matrix.compress (dealii::VectorOperation::add);
+     }
+
   } // MatrixCreator
   
 } // namepsace mandy

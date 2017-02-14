@@ -28,12 +28,14 @@
 // 
 // -----------------------------------------------------------------------------
 
+#include <mandy/matrix_creator.h>
+
 namespace mandy
 {
 
   namespace MatrixCreator
   {
-
+    
   } // namepsace MatrixCreator
   
 } // namepsace mandy
