@@ -427,13 +427,14 @@ namespace mandy
 	      << std::endl
 	      << "   Number of active cells:       "
 	      << triangulation.n_global_active_cells ()
-	      << std::endl
-	      << "   Number of degrees of freedom: "
-	      << dof_handler.n_dofs ()
 	      << std::endl;
 
 	setup_system ();
 
+	pcout << "   Number of degrees of freedom: "
+	      << dof_handler.n_dofs ()
+	      << std::endl;
+	
 	assemble_system ();
 
 	const unsigned int n_iterations = solve ();
