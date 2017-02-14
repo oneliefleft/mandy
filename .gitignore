@@ -33,4 +33,6 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 cmake_install.cmake
-				
+
+* Output data.
+*.vtu
