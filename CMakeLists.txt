@@ -27,6 +27,7 @@ INCLUDE_DIRECTORIES (include/mandy)
 
 ADD_LIBRARY(mandy
   source/matrix_creator.cc
+  source/vector_creator.cc
   )
 
 DEAL_II_SETUP_TARGET (mandy)

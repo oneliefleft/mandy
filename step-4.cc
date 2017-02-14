@@ -43,6 +43,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <mandy/matrix_creator.h>
+#include <mandy/vector_creator.h>
 
 #include <fstream>
 #include <iostream>
@@ -287,7 +288,8 @@ namespace mandy
    *
    * however no such thing currently exists in the deal.II
    * library. Instead, the mass matrix and right hand side vector are
-   * assmebled by hand in the usual way.
+   * assembled by hand in functions defined in the namepsaces
+   * mandy::MatrixCreator and mandy::VectorCreator respectively.
    */
   template <int dim>
   void
@@ -302,6 +304,10 @@ namespace mandy
     mandy::MatrixCreator::create_mass_matrix<dim> (fe, dof_handler, quadrature_formula,
 						   system_matrix, constraints,
 						   mpi_communicator);
+
+    // mandy::VectorCreator::create_right_hand_side_vector<dim> (fe, dof_handler, quadrature_formula,
+    // 							      system_rhs, constraints,
+    // 							      mpi_communicator);
     
     dealii::FEValues<dim> fe_values (fe, quadrature_formula,
 				     dealii::update_values            |
