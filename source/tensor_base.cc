@@ -28,44 +28,17 @@
 // 
 // -----------------------------------------------------------------------------
 
-#include <deal.II/base/exceptions.h>
-#include <deal.II/base/tensor.h>
-
 #include <mandy/tensor_base.h>
 
 namespace mandy
 {
-  
-  namespace Physics
-  {
-    
-    /**
-     * A class that describes the elastic tensor (or stress-strain
-     * tensor).
-     */ 
-    template <typename number = double>
-      class ElasticTensor
-      :
-      mandy::TensorBase<4,3,number>
-      {
-      public:
-      
-      
-      /**
-       * Constructor.
-       */
-      ElasticTensor ()
-      {
-	this->coefficients  = std::vector<double> (5);
-      };
-      
-      /**
-       * Distribute @p coefficients
-       */ 
-      void distribute_coefficients ();
-      
-    }; // ElasticTensor
-    
-  } // namespace Physics
-  
+
+    template<int rank, int dim, typename number>
+    void
+    TensorBase<rank, dim, number>::distribute_coefficients ()
+    {}
+
 } // namepsace mandy
+
+template class
+mandy::TensorBase<4, 3, double>;

@@ -41,39 +41,39 @@ namespace mandy
     ElasticTensor<number>::distribute_coefficients ()
     {
       // There should be five independent coefficients.
-      AssertThrow (coefficients.size ()==5,
-		   dealii::ExcDimensionMismatch (coefficients.size (), 4));
+      AssertThrow (this->coefficients.size ()==5,
+		   dealii::ExcDimensionMismatch (this->coefficients.size (), 4));
 
       // Distribute the coefficients on to the tensor. It seems
       // there is no automagic way to do this, so just insert those
       // elements that are non-zero: C_11 = C_22, C_12, C_13 = C_23,
       // C_33, C_44 = C_55. 
-      tensor = 0;
+      this->tensor = 0;
       
       // C_11 = C_22 \mapsto
-      tensor[0][0][0][0] = tensor[1][1][1][1] = coefficients[0];
+      this->tensor[0][0][0][0] = this->tensor[1][1][1][1] = this->coefficients[0];
       
       // C_12 \mapsto
-      tensor[0][0][1][1] = tensor[1][1][0][0] = coefficients[1];
+      this->tensor[0][0][1][1] = this->tensor[1][1][0][0] = this->coefficients[1];
       
       // C_13 = C_23 \mapsto
-      tensor[0][0][2][2] = tensor[1][1][2][2] = coefficients[2];
+      this->tensor[0][0][2][2] = this->tensor[1][1][2][2] = this->coefficients[2];
       
       // C_33 \mapsto
-      tensor[2][2][2][2] = coefficients[3];
+      this->tensor[2][2][2][2] = this->coefficients[3];
       
       // C_44 = C55 \mapsto
-      tensor[1][2][1][2] = tensor[2][1][1][2] = tensor[2][1][2][1] = tensor[1][2][2][1]
+      this->tensor[1][2][1][2] = this->tensor[2][1][1][2] = this->tensor[2][1][2][1] = this->tensor[1][2][2][1]
 	=
-	tensor[2][0][2][0] = tensor[0][2][2][0] = tensor[0][2][0][2] = tensor[2][0][0][2]
+	this->tensor[2][0][2][0] = this->tensor[0][2][2][0] = this->tensor[0][2][0][2] = this->tensor[2][0][0][2]
 	=
-	coefficients[4];
+	this->coefficients[4];
       
       // C_66 \mapsto
-      tensor[0][1][0][1] = tensor[1][0][0][1] = tensor[1][0][1][0] = tensor[0][1][1][0]
+      this->tensor[0][1][0][1] = this->tensor[1][0][0][1] = this->tensor[1][0][1][0] = this->tensor[0][1][1][0]
 	=
-	(coefficients[0] - coefficients[1]) /2.;
-      
+	(this->coefficients[0] - this->coefficients[1]) /2.;
+
     }
     
   } // namespace Physics

@@ -31,41 +31,45 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/tensor.h>
 
-#include <mandy/tensor_base.h>
-
 namespace mandy
 {
   
-  namespace Physics
-  {
+  /**
+   * A base class that describes the tensors of coefficients.
+   */ 
+  template <int rank, int dim, typename number = double>
+    class TensorBase
+    :
+    dealii::Tensor<rank, dim, number>
+    {
+    public:
+    
     
     /**
-     * A class that describes the elastic tensor (or stress-strain
-     * tensor).
-     */ 
-    template <typename number = double>
-      class ElasticTensor
-      :
-      mandy::TensorBase<4,3,number>
-      {
-      public:
-      
-      
-      /**
-       * Constructor.
-       */
-      ElasticTensor ()
-      {
-	this->coefficients  = std::vector<double> (5);
-      };
-      
-      /**
-       * Distribute @p coefficients
-       */ 
-      void distribute_coefficients ();
-      
-    }; // ElasticTensor
+     * Constructor.
+     */
+    TensorBase ()
+    :
+    tensor (dealii::Tensor<rank, dim, number> ())
+    {};
+
+    /**
+     * Distribute @p coefficients
+     */
+    virtual void distribute_coefficients ();
     
-  } // namespace Physics
+    protected:
+    
+    /**
+     * The underlying data type that describes an elastic tensor.
+     */
+    dealii::Tensor<rank, dim, number> tensor;
+    
+    /**
+     * A vector of coefficients.
+     */
+    std::vector<number> coefficients;
+    
+    }; // TensorBase
   
 } // namepsace mandy

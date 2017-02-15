@@ -31,6 +31,7 @@ ADD_LIBRARY(mandy
   source/vector_creator.cc
   # physics
   source/elastic_tensor.cc
+  source/tensor_base.cc
   )
 
 DEAL_II_SETUP_TARGET (mandy)
