@@ -52,7 +52,7 @@ namespace mandy
      * The argument @p constraints allows to apply constraints on the
      * resulting matrix directly.
      */
-    template<int dim, int spacedim = dim>
+    template<int dim, int spacedim = dim, typename number = double>
       void
       create_mass_matrix (const dealii::FESystem<dim,spacedim>     &finite_element,
 			  const dealii::DoFHandler<dim,spacedim>   &dof_handler,

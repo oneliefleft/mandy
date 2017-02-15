@@ -55,7 +55,7 @@ namespace mandy
      * The argument @p constraints allows to apply constraints on the
      * resulting matrix directly.
      */
-    template<int dim, int spacedim = dim>
+    template<int dim, int spacedim = dim, typename number = double>
       void
       create_right_hand_side_vector (const dealii::FESystem<dim,spacedim>     &finite_element,
 				     const dealii::DoFHandler<dim,spacedim>   &dof_handler,
