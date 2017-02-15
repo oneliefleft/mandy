@@ -56,19 +56,19 @@ namespace mandy
    * grid.
    */
   template <int dim>
-  class LinearElasticity
+  class MaterialID
   {
   public:
 
     /**
      * Class constructor.
      */
-    LinearElasticity (const std::string &prm_file);
+    MaterialID (const std::string &prm_file);
 
     /**
      * Class destructor.
      */
-    ~LinearElasticity ();
+    ~MaterialID ();
 
     /**
      * Wrapper function, that controls the order of excecution.
@@ -176,14 +176,14 @@ namespace mandy
      */
     dealii::ParameterHandler parameters;
     
-  }; // LinearElasticity
+  }; // MaterialID
 
   
   /**
    * Class constructor.
    */
   template <int dim>
-  LinearElasticity<dim>::LinearElasticity (const std::string &prm_file)
+  MaterialID<dim>::MaterialID (const std::string &prm_file)
     :
     mpi_communicator (MPI_COMM_WORLD),
     triangulation (mpi_communicator,
@@ -192,7 +192,7 @@ namespace mandy
                     dealii::Triangulation<dim>::smoothing_on_coarsening)),
     dof_handler (triangulation),
     fe (dealii::FE_Q<dim> (2), 1),
-    // Other initialisations go here.
+    // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_communicator) == 0)),
     timer (mpi_communicator, pcout,
 	   dealii::TimerOutput::summary,
@@ -215,7 +215,7 @@ namespace mandy
    * Class destructor.
    */
   template <int dim>
-  LinearElasticity<dim>::~LinearElasticity ()
+  MaterialID<dim>::~MaterialID ()
   {
     // Wipe DoF handlers.
     dof_handler.clear ();
@@ -227,7 +227,7 @@ namespace mandy
    */
   template <int dim>
   void
-  LinearElasticity<dim>::make_coarse_grid ()
+  MaterialID<dim>::make_coarse_grid ()
   {
     dealii::TimerOutput::Scope time (timer, "make coarse grid");
 
@@ -243,7 +243,7 @@ namespace mandy
    * Setup system matrices and vectors.
    */
   template <int dim>
-  void LinearElasticity<dim>::setup_system ()
+  void MaterialID<dim>::setup_system ()
   {
     dealii::TimerOutput::Scope time (timer, "setup system");
 
@@ -293,14 +293,14 @@ namespace mandy
    */
   template <int dim>
   void
-  LinearElasticity<dim>::assemble_system ()
+  MaterialID<dim>::assemble_system ()
   {
     dealii::TimerOutput::Scope time (timer, "assemble system");
 
-    // Define set of rules and constants required for assembly of the
-    // system.
+    // Define quadrature rule to be used.
     const dealii::QGauss<dim> quadrature_formula (3);
 
+    // Initialise the function parser.
     dealii::FunctionParser<dim> material_identification;
     material_identification.initialize (dealii::FunctionParser<dim>::default_variable_names (),
 					parameters.get ("MaterialID"),
@@ -322,7 +322,7 @@ namespace mandy
    */
   template <int dim>
   unsigned int
-  LinearElasticity<dim>::solve ()
+  MaterialID<dim>::solve ()
   {
     dealii::TimerOutput::Scope time (timer, "solve");
     
@@ -352,7 +352,7 @@ namespace mandy
    */
   template <int dim>
   void
-  LinearElasticity<dim>::output_results (const unsigned int cycle)
+  MaterialID<dim>::output_results (const unsigned int cycle)
   {
     dealii::TimerOutput::Scope time (timer, "output_results");
 
@@ -367,7 +367,7 @@ namespace mandy
 
     data_out.build_patches ();
     
-    const std::string filename = ("solution-" +
+    const std::string filename = ("material_id-" +
                                   dealii::Utilities::int_to_string (cycle, 2) +
                                   "." +
                                   dealii::Utilities::int_to_string
@@ -383,12 +383,12 @@ namespace mandy
 	for (unsigned int i=0;
 	     i<dealii::Utilities::MPI::n_mpi_processes (mpi_communicator);
 	     ++i)
-	  filenames.push_back ("solution-" +
+	  filenames.push_back ("material_id-" +
 			       dealii::Utilities::int_to_string (cycle, 2) +
 			       "." +
 			       dealii::Utilities::int_to_string (i, 4) +
 			       ".vtu");
-	std::ofstream master_output (("solution-" +
+	std::ofstream master_output (("material_id-" +
 				      dealii::Utilities::int_to_string (cycle, 2) +
 				      ".pvtu").c_str ());
 
@@ -402,7 +402,7 @@ namespace mandy
    * material id (solution vector).
    */
   template <int dim>
-  void LinearElasticity<dim>::refine_grid ()
+  void MaterialID<dim>::refine_grid ()
   {
     dealii::TimerOutput::Scope time (timer, "refine grid");
 
@@ -416,7 +416,7 @@ namespace mandy
     dealii::parallel::distributed::GridRefinement::
       refine_and_coarsen_fixed_number (triangulation,
 				       estimated_error_per_cell,
-				       0.3, 0.03);
+				       0.250, 0.025);
 
     triangulation.execute_coarsening_and_refinement ();
   }
@@ -427,9 +427,9 @@ namespace mandy
    */
   template <int dim>
   void
-  LinearElasticity<dim>::run ()
+  MaterialID<dim>::run ()
   {
-    const unsigned int n_cycles = 3;
+    const unsigned int n_cycles = 5;
     
     for (unsigned int cycle=0; cycle<n_cycles; ++cycle)
       {
@@ -460,6 +460,10 @@ namespace mandy
 	      << " iterations."
 	      << std::endl;
 
+	pcout << "   Linfty-norm:                  "
+	      << locally_relevant_solution.linfty_norm ()
+	      << std::endl;
+
 	// Output results if the number of processes is less than or
 	// equal to 32.
 	if (dealii::Utilities::MPI::n_mpi_processes (mpi_communicator) <= 32)
@@ -484,8 +488,8 @@ int main (int argc, char *argv[])
   
   try
     {
-      mandy::LinearElasticity<3> linear_elasticity ("step-4.prm");
-      linear_elasticity.run ();
+      mandy::MaterialID<3> material_id ("step-4.prm");
+      material_id.run ();
     }
 
   catch (std::exception &exc)
