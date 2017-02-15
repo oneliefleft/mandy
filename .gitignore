@@ -28,12 +28,14 @@
 *.out
 *.app
 
+# Backup files
+**/*~
+
 # CMake generated files.
 CMakeCache.txt
 CMakeFiles
 Makefile
 cmake_install.cmake
-*/*~
 
 * Output generated data.
 *.pvtu
