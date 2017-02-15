@@ -301,64 +301,19 @@ namespace mandy
     // system.
     const dealii::QGauss<dim> quadrature_formula (3);
 
+    dealii::FunctionParser<dim> material_identification;
+    material_identification.initialize (dealii::FunctionParser<dim>::default_variable_names (),
+					parameters.get ("MaterialID"),
+					typename dealii::FunctionParser<dim>::ConstMap ());
+    
     mandy::MatrixCreator::create_mass_matrix<dim> (fe, dof_handler, quadrature_formula,
 						   system_matrix, constraints,
 						   mpi_communicator);
 
-    // mandy::VectorCreator::create_right_hand_side_vector<dim> (fe, dof_handler, quadrature_formula,
-    // 							      system_rhs, constraints,
-    // 							      mpi_communicator);
-    
-    dealii::FEValues<dim> fe_values (fe, quadrature_formula,
-				     dealii::update_values            |
-				     dealii::update_quadrature_points |
-				     dealii::update_JxW_values);
-
-    const unsigned int dofs_per_cell = fe.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature_formula.size ();
-    
-    dealii::Vector<double> cell_rhs (dofs_per_cell);
-    
-    std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
- 
-    dealii::FunctionParser<dim> material_id;
-    material_id.initialize (dealii::FunctionParser<dim>::default_variable_names (),
-			    parameters.get ("MaterialID"),
-			    typename dealii::FunctionParser<dim>::ConstMap ());
-    std::vector<double> material_id_values (n_q_points);
-        
-    // Loop over all cells and insert the corresponding matrix entried.
-    typename dealii::DoFHandler<dim>::active_cell_iterator
-      cell = dof_handler.begin_active (),
-      endc = dof_handler.end ();
-
-    for (; cell!=endc; ++cell)
-      if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_communicator))
-        {
-          cell_rhs    = 0;
-	  
-          fe_values.reinit (cell);
-
-	  material_id.value_list (fe_values.get_quadrature_points (),
-				  material_id_values);
-	  
-          for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
-	    for (unsigned int j=0; j<dofs_per_cell; ++j)
-	      {
-		cell_rhs (j) +=
-		  material_id_values[q_point]       *
-		  fe_values.shape_value (j,q_point) *
-		  fe_values.JxW (q_point);
-	      }
-	  
-	  cell->get_dof_indices (local_dof_indices);
-	  
-	  constraints.distribute_local_to_global (cell_rhs,
-                                                  local_dof_indices,
-                                                  system_rhs);
-	} // cell!=endc
-    
-    system_rhs.compress (dealii::VectorOperation::add);
+    mandy::VectorCreator::create_right_hand_side_vector<dim> (fe, dof_handler, quadrature_formula,
+     							      system_rhs, constraints,
+							      material_identification,
+							      mpi_communicator);
   }
   
 

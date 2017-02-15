@@ -36,6 +36,8 @@
 #include <deal.II/lac/constraint_matrix.h>
 #include <deal.II/lac/petsc_parallel_vector.h>
 
+#include <deal.II/base/function.h>
+#include <deal.II/base/function_parser.h>
 #include <deal.II/base/quadrature_lib.h>
 
 namespace mandy
@@ -59,8 +61,9 @@ namespace mandy
 				     const dealii::DoFHandler<dim,spacedim>   &dof_handler,
 				     const dealii::Quadrature<dim>            &quadrature,
 				     dealii::PETScWrappers::MPI::Vector       &vector,
-				     dealii::ConstraintMatrix                 &constraints,
-				     MPI_Comm                                 &mpi_communicator)
+				     const dealii::ConstraintMatrix           &constraints,
+				     const dealii::FunctionParser<dim>        &function_parser,
+				     const MPI_Comm                           &mpi_communicator)
       {
 	dealii::FEValues<dim> fe_values (finite_element, quadrature,
 					 dealii::update_values            |
@@ -72,6 +75,8 @@ namespace mandy
 	
 	dealii::Vector<double> cell_vector (dofs_per_cell); 
 	std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
+
+	std::vector<double> function_values (n_q_points);
 	
 	typename dealii::DoFHandler<dim>::active_cell_iterator
 	cell = dof_handler.begin_active (),
@@ -82,13 +87,16 @@ namespace mandy
 	    {
 	      cell_vector = 0;
 	      fe_values.reinit (cell);
+
+	      function_parser.value_list (fe_values.get_quadrature_points (),
+					  function_values);
 	      
 	      for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 		for (unsigned int j=0; j<dofs_per_cell; ++j)
 		   {
 		     // Local right hand side vector.
 		     cell_vector (j) +=
-		       /* material_id_values[q_point]       * */
+		       function_values[q_point]          * 
 		       fe_values.shape_value (j,q_point) *
 		       fe_values.JxW (q_point);
 		   }
