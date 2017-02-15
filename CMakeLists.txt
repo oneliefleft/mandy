@@ -26,8 +26,11 @@ ADD_SUBDIRECTORY(source)
 INCLUDE_DIRECTORIES (include/mandy)
 
 ADD_LIBRARY(mandy
+  # tools
   source/matrix_creator.cc
   source/vector_creator.cc
+  # physics
+  source/elastic_tensor.cc
   )
 
 DEAL_II_SETUP_TARGET (mandy)

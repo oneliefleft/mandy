@@ -1,6 +1,4 @@
 
-
-
 #include <deal.II/base/function.h>
 #include <deal.II/base/function_parser.h>
 #include <deal.II/base/logstream.h>
@@ -42,6 +40,7 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <mandy/elastic_tensor.h>
 #include <mandy/matrix_creator.h>
 #include <mandy/vector_creator.h>
 
@@ -52,8 +51,8 @@ namespace mandy
 {
 
   /**
-   * Solve the equations of linear elasticity on a finite element
-   * grid.
+   * Solve the system Mx=b, where M is the mass matrix and b is a
+   * linear function.
    */
   template <int dim>
   class MaterialID
@@ -286,10 +285,11 @@ namespace mandy
    *
    * dealii::MatrixCreator::create_mass_matrix (dof_handler, quadrature_rule, system_matrix, 1, constraints);
    *
-   * however no such thing currently exists in the deal.II
-   * library. Instead, the mass matrix and right hand side vector are
-   * assembled by hand in functions defined in the namepsaces
-   * mandy::MatrixCreator and mandy::VectorCreator respectively.
+   * however no such thing currently exists in the deal.II library for
+   * parallel matrices and vectors. Instead, the mass matrix and right
+   * hand side vector are assembled by hand in functions defined in
+   * the namepsaces, mandy::MatrixCreator and mandy::VectorCreator,
+   * respectively.
    */
   template <int dim>
   void
@@ -477,6 +477,224 @@ namespace mandy
   
 } // namespace mandy
 
+namespace mandy
+{
+  /**
+   * Solve the system Ax=b, where A is the vector-valued operator of
+   * the Laplace-type and b is a linear function.
+   */
+  template <int dim>
+  class ElasticProblem
+  {
+  public:
+
+    /**
+     * Class constructor.
+     */
+    ElasticProblem (const std::string &prm_file);
+
+    /**
+     * Class destructor.
+     */
+    ~ElasticProblem ();
+
+    /**
+     * Wrapper function, that controls the order of excecution.
+     */
+    void run ();
+
+    /**
+     * Assemble elastic tensor.
+     *
+     * @note Only one tensor is needed and a superposition of the
+     * coefficients can be passed to this tensor through the function,
+     * distribute_coefficients ().
+     */
+    void assemble_elastic_tensor ();
+    
+  private:
+
+    /**
+     * Make intial coarse grid.
+     */
+    void make_coarse_grid ();
+
+    /**
+     * Setup system matrices and vectors.
+     */
+    void setup_system ();
+
+    /**
+     * Assemble system matrices and vectors.
+     */
+    void assemble_system();
+
+    /**
+     * Solve the linear algebra system.
+     */
+    unsigned int solve ();
+    
+    /**
+     * Output results, ie., finite element functions and derived
+     * quantitites for this cycle.
+     */
+    void output_results (const unsigned int cycle);
+
+    /**
+     * Refine grid based on Kelly's error estimator working on the
+     * material id (solution vector).
+     */
+    void refine_grid ();
+    
+    /**
+     * MPI communicator.
+     */
+    MPI_Comm mpi_communicator;
+
+    /**
+     * A distributed grid on which all computations are done.
+     */
+    dealii::parallel::distributed::Triangulation<dim> triangulation;
+
+    /**
+     * Scalar DoF handler primarily used for interpolating material
+     * identification.
+     */
+    dealii::DoFHandler<dim> dof_handler;
+
+    // /**
+    //  * Scalar valued finite element primarily used for interpolating
+    //  * material iudentification.
+    //  */
+    dealii::FESystem<dim> fe;
+
+    /**
+     * Index set of locally owned DoFs.
+     */
+    dealii::IndexSet locally_owned_dofs;
+
+    /**
+     * Index set of locally relevant DoFs.
+     */
+    dealii::IndexSet locally_relevant_dofs;
+
+    /**
+     * A list of (hanging node) constraints.
+     */
+    dealii::ConstraintMatrix constraints;
+    
+    /**
+     * System matrix - a mass matrix.
+     */
+    dealii::PETScWrappers::MPI::SparseMatrix system_matrix;
+
+    /**
+     * Locally relevant solution vector.
+     */
+    dealii::PETScWrappers::MPI::Vector locally_relevant_solution;
+
+    /**
+     * System right hand side function - interpolated function.
+     */
+    dealii::PETScWrappers::MPI::Vector system_rhs;
+    
+    /**
+     * Parallel iostream.
+     */
+    dealii::ConditionalOStream pcout;
+
+    /**
+     * Stop clock.
+     */
+    dealii::TimerOutput timer;
+    
+    /**
+     * Input parameter file.
+     */
+    dealii::ParameterHandler parameters;
+
+    /**
+     * Elastic tensor of moduli.
+     */
+    mandy::Physics::ElasticTensor<> elastic_tensor;
+    
+  }; // LinearElasticity
+
+  /**
+   * Class constructor.
+   */
+  template <int dim>
+  ElasticProblem<dim>::ElasticProblem (const std::string &prm_file)
+    :
+    mpi_communicator (MPI_COMM_WORLD),
+    triangulation (mpi_communicator,
+                   typename dealii::Triangulation<dim>::MeshSmoothing
+                   (dealii::Triangulation<dim>::smoothing_on_refinement |
+                    dealii::Triangulation<dim>::smoothing_on_coarsening)),
+    dof_handler (triangulation),
+    fe (dealii::FE_Q<dim> (2), 1),
+    // ---
+    pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_communicator) == 0)),
+    timer (mpi_communicator, pcout,
+	   dealii::TimerOutput::summary,
+	   dealii::TimerOutput::wall_times)
+  {
+    parameters.declare_entry ("Global mesh refinement steps", "5",
+                              dealii::Patterns::Integer (0, 20),
+                              "The number of times the 1-cell coarse mesh should "
+                              "be refined globally for our computations.");
+
+    parameters.declare_entry ("MaterialID", "0",
+                              dealii::Patterns::Anything (),
+                              "A functional description of the material ID.");
+    
+    parameters.parse_input (prm_file);
+  }
+
+  
+  /**
+   * Class destructor.
+   */
+  template <int dim>
+  ElasticProblem<dim>::~ElasticProblem ()
+  {
+    // Wipe DoF handlers.
+    dof_handler.clear ();
+  }
+
+
+  /**
+   * Run the application in the order specified.
+   */
+  template <int dim>
+  void
+  ElasticProblem<dim>::assemble_elastic_tensor ()
+  {
+    
+  }
+    
+
+  /**
+   * Run the application in the order specified.
+   */
+  template <int dim>
+  void
+  ElasticProblem<dim>::run ()
+  {
+    // To solve the Elastic problem, first we need to solve the
+    // problem of a mterial identification. This is done by solving a
+    // function against the mass matrix.
+
+
+    // Once the solution vector from the above problem has been
+    // computed, the elastic problem can be solved.
+
+    // Assemble a copy of the elastic tensors.
+
+  }
+  
+} // namespace mandy
+
 
 /**
  * Main function: Initialise problem and run it.
@@ -488,8 +706,11 @@ int main (int argc, char *argv[])
   
   try
     {
-      mandy::MaterialID<3> material_id ("step-4.prm");
-      material_id.run ();
+      mandy::ElasticProblem<3> elastic_problem ("elastic.prm");
+      elastic_problem.run ();
+
+      // mandy::MaterialID<3> material_id ("step-4.prm");
+      // material_id.run ();
     }
 
   catch (std::exception &exc)
