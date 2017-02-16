@@ -38,6 +38,9 @@
 
 #include <deal.II/base/quadrature_lib.h>
 
+#ifndef __mandy_matrix_creator_h
+#define __mandy_matrix_creator_h
+
 namespace mandy
 {
 
@@ -52,7 +55,7 @@ namespace mandy
      * The argument @p constraints allows to apply constraints on the
      * resulting matrix directly.
      */
-    template<int dim, int spacedim = dim, typename number = double>
+    template<int dim, int spacedim = dim, typename ValueType = double>
       void
       create_mass_matrix (const dealii::FESystem<dim,spacedim>     &finite_element,
 			  const dealii::DoFHandler<dim,spacedim>   &dof_handler,
@@ -106,3 +109,5 @@ namespace mandy
   } // namespace MatrixCreator
   
 } // namepsace mandy
+
+#endif // __mandy_matrix_creator_h

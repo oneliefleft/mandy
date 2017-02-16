@@ -33,9 +33,9 @@
 namespace mandy
 {
 
-    template<int rank, int dim, typename number>
+    template<int rank, int dim, typename ValueType>
     void
-    TensorBase<rank, dim, number>::distribute_coefficients ()
+    TensorBase<rank, dim, ValueType>::distribute_coefficients ()
     {}
 
 } // namepsace mandy

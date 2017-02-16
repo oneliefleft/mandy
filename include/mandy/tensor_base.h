@@ -31,16 +31,19 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/tensor.h>
 
+#ifndef __mandy_tensor_base_h
+#define __mandy_tensor_base_h
+
 namespace mandy
 {
   
   /**
    * A base class that describes the tensors of coefficients.
    */ 
-  template <int rank, int dim, typename number = double>
+  template <int rank, int dim, typename ValueType = double>
     class TensorBase
     :
-    dealii::Tensor<rank, dim, number>
+    dealii::Tensor<rank, dim, ValueType>
     {
     public:
     
@@ -50,7 +53,7 @@ namespace mandy
      */
     TensorBase ()
     :
-    tensor (dealii::Tensor<rank, dim, number> ())
+    tensor (dealii::Tensor<rank, dim, ValueType> ())
     {};
 
     /**
@@ -63,13 +66,15 @@ namespace mandy
     /**
      * The underlying data type that describes an elastic tensor.
      */
-    dealii::Tensor<rank, dim, number> tensor;
+    dealii::Tensor<rank, dim, ValueType> tensor;
     
     /**
      * A vector of coefficients.
      */
-    std::vector<number> coefficients;
+    std::vector<ValueType> coefficients;
     
     }; // TensorBase
   
 } // namepsace mandy
+
+#endif // __mandy_tensor_base_h

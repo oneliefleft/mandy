@@ -40,6 +40,9 @@
 #include <deal.II/base/function_parser.h>
 #include <deal.II/base/quadrature_lib.h>
 
+#ifndef __mandy_vector_creator_h
+#define __mandy_vector_creator_h
+
 namespace mandy
 {
 
@@ -55,7 +58,7 @@ namespace mandy
      * The argument @p constraints allows to apply constraints on the
      * resulting matrix directly.
      */
-    template<int dim, int spacedim = dim, typename number = double>
+    template<int dim, int spacedim = dim, typename ValueType = double>
       void
       create_right_hand_side_vector (const dealii::FESystem<dim,spacedim>     &finite_element,
 				     const dealii::DoFHandler<dim,spacedim>   &dof_handler,
@@ -114,3 +117,5 @@ namespace mandy
   } // namespace VectorCreator
   
 } // namepsace mandy
+
+#endif //  __mandy_vector_creator_h

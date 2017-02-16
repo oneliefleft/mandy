@@ -33,6 +33,9 @@
 
 #include <mandy/tensor_base.h>
 
+#ifndef __mandy_elastic_tensor_h
+#define __mandy_elastic_tensor_h
+
 namespace mandy
 {
   
@@ -43,10 +46,10 @@ namespace mandy
      * A class that describes the elastic tensor (or stress-strain
      * tensor).
      */ 
-    template <typename number = double>
+    template <typename ValueType = double>
       class ElasticTensor
       :
-      mandy::TensorBase<4,3,number>
+      mandy::TensorBase<4,3,ValueType>
       {
       public:
       
@@ -56,7 +59,7 @@ namespace mandy
        */
       ElasticTensor ()
       {
-	this->coefficients  = std::vector<double> (5);
+	this->coefficients  = std::vector<ValueType> (5);
       };
       
       /**
@@ -69,3 +72,5 @@ namespace mandy
   } // namespace Physics
   
 } // namepsace mandy
+
+#endif // __mandy_elastic_tensor_h
