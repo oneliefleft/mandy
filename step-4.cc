@@ -124,22 +124,22 @@ namespace mandy
      */
     dealii::DoFHandler<dim> dof_handler;
 
-    // /**
-    //  * Scalar valued finite element primarily used for interpolating
-    //  * material iudentification.
-    //  */
+    /**
+     * Scalar valued finite element primarily used for interpolating
+     * material iudentification.
+     */
     dealii::FESystem<dim> fe;
-
+    
     /**
      * Index set of locally owned DoFs.
      */
     dealii::IndexSet locally_owned_dofs;
-
+    
     /**
      * Index set of locally relevant DoFs.
      */
     dealii::IndexSet locally_relevant_dofs;
-
+    
     /**
      * A list of (hanging node) constraints.
      */
@@ -562,10 +562,10 @@ namespace mandy
      */
     dealii::DoFHandler<dim> dof_handler;
 
-    // /**
-    //  * Scalar valued finite element primarily used for interpolating
-    //  * material iudentification.
-    //  */
+    /**
+     * Scalar valued finite element primarily used for interpolating
+     * material iudentification.
+     */
     dealii::FESystem<dim> fe;
 
     /**
@@ -620,6 +620,7 @@ namespace mandy
     
   }; // LinearElasticity
 
+
   /**
    * Class constructor.
    */
@@ -632,7 +633,7 @@ namespace mandy
                    (dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening)),
     dof_handler (triangulation),
-    fe (dealii::FE_Q<dim> (2), 1),
+    fe (dealii::FE_Q<dim> (2), dim),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_communicator) == 0)),
     timer (mpi_communicator, pcout,
