@@ -62,7 +62,7 @@ namespace mandy
     /**
      * Class constructor.
      */
-    MaterialID (const std::string &prm_file);
+    MaterialID (const std::string &prm);
 
     /**
      * Class destructor.
@@ -182,7 +182,7 @@ namespace mandy
    * Class constructor.
    */
   template <int dim>
-  MaterialID<dim>::MaterialID (const std::string &prm_file)
+  MaterialID<dim>::MaterialID (const std::string &prm)
     :
     mpi_communicator (MPI_COMM_WORLD),
     triangulation (mpi_communicator,
@@ -206,7 +206,7 @@ namespace mandy
                               dealii::Patterns::Anything (),
                               "A functional description of the material ID.");
     
-    parameters.parse_input (prm_file);
+    parameters.parse_input (prm);
   }
 
   
@@ -491,7 +491,7 @@ namespace mandy
     /**
      * Class constructor.
      */
-    ElasticProblem (const std::string &prm_file);
+    ElasticProblem (const std::string &prm);
 
     /**
      * Class destructor.
@@ -614,9 +614,24 @@ namespace mandy
     dealii::ParameterHandler parameters;
 
     /**
-     * Elastic tensor of moduli.
+     * Tensor of elastic coefficients.
      */
     mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor;
+
+    /**
+     * Vector of elastic coefficients.
+     */
+    std::vector<double> elastic_coefficients;
+    
+    /**
+     * Vector of elastic coefficients of the background.
+     */
+    std::vector<double> elastic_coefficients_background;
+
+    /**
+     * Vector of elastic coefficients of an inclusion.
+     */
+    std::vector<double> elastic_coefficients_inclusion;
     
   }; // LinearElasticity
 
@@ -625,7 +640,7 @@ namespace mandy
    * Class constructor.
    */
   template <int dim>
-  ElasticProblem<dim>::ElasticProblem (const std::string &prm_file)
+  ElasticProblem<dim>::ElasticProblem (const std::string &prm)
     :
     mpi_communicator (MPI_COMM_WORLD),
     triangulation (mpi_communicator,
@@ -640,16 +655,27 @@ namespace mandy
 	   dealii::TimerOutput::summary,
 	   dealii::TimerOutput::wall_times)
   {
-    parameters.declare_entry ("Global mesh refinement steps", "5",
-                              dealii::Patterns::Integer (0, 20),
-                              "The number of times the 1-cell coarse mesh should "
-                              "be refined globally for our computations.");
-
-    parameters.declare_entry ("MaterialID", "0",
-                              dealii::Patterns::Anything (),
-                              "A functional description of the material ID.");
+    parameters.enter_subsection ("Material");
+      {
+	// Do something
+      }
+    parameters.leave_subsection ();
     
-    parameters.parse_input (prm_file);
+    parameters.enter_subsection ("Elastic coefficients");
+    {
+      parameters.declare_entry ("Background",
+				"0, 0, 0, 0, 0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
+				"Elastic coefficients of the background");
+	
+      parameters.declare_entry ("Inclusion",
+				"0, 0, 0, 0, 0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
+				"Elastic coefficients of an inclusion");
+      }
+    parameters.leave_subsection ();
+    
+    parameters.parse_input (prm);
   }
 
   
@@ -672,6 +698,30 @@ namespace mandy
   ElasticProblem<dim>::assemble_elastic_tensor ()
   {
     
+    parameters.enter_subsection ("Elastic coefficients");
+    {
+      elastic_coefficients_background = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Background"), ','));
+
+      elastic_coefficients_inclusion = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Inclusion"), ','));
+      
+      pcout << "   Elastic coefficients: "
+	    << std::endl;;
+
+      pcout << "      Background:        ";
+      for (unsigned int i=0;i<elastic_coefficients_background.size (); ++i)
+	pcout << elastic_coefficients_background[i] << " ";
+      pcout << std::endl;
+    
+      pcout << "      Inclusion:         ";
+      for (unsigned int i=0;i<elastic_coefficients_inclusion.size (); ++i)
+	pcout << elastic_coefficients_inclusion[i] << " ";
+      pcout << std::endl;
+    }
+
+    parameters.leave_subsection ();
+
   }
     
 
@@ -686,12 +736,11 @@ namespace mandy
     // problem of a mterial identification. This is done by solving a
     // function against the mass matrix.
 
-
     // Once the solution vector from the above problem has been
     // computed, the elastic problem can be solved.
-
+    
     // Assemble a copy of the elastic tensors.
-
+    assemble_elastic_tensor ();
   }
   
 } // namespace mandy
