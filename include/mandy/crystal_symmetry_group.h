@@ -28,30 +28,18 @@
 // 
 // -----------------------------------------------------------------------------
 
-#include <mandy/dielectric_tensor.h>
+#ifndef __mandy_crystal_symmetry_type_h
+#define __mandy_crystal_symmetry_type_h
 
 namespace mandy
 {
-
-  namespace Physics
+  
+  enum CrystalSymmetryGroup
   {
+    zincblende,
+    wurtzite
+  };
+  
+} // namespace mandy
 
-    template<enum CrystalSymmetryGroup CSG, typename ValueType>
-    void
-    DielectricTensor<CSG, ValueType>::distribute_coefficients ()
-    {
-      // There should be two independent coefficients.
-      AssertThrow (this->coefficients.size ()==2,
-		   dealii::ExcDimensionMismatch (this->coefficients.size (), 2));
-
-      // Distribute the coefficients on to the tensor. 
-      this->tensor = 0;
-      
-    }
-    
-  } // namespace Physics
-
-} // namepsace mandy
-
-template class
-mandy::Physics::DielectricTensor<mandy::CrystalSymmetryGroup::wurtzite, double>;
+#endif // __mandy_crystal_symmetry_type_h

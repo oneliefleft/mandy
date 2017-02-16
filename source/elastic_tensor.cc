@@ -36,9 +36,9 @@ namespace mandy
   namespace Physics
   {
 
-    template<typename ValueType>
+    template<enum CrystalSymmetryGroup CSG, typename ValueType>
     void
-    ElasticTensor<ValueType>::distribute_coefficients ()
+    ElasticTensor<CSG, ValueType>::distribute_coefficients ()
     {
       // There should be five independent coefficients.
       AssertThrow (this->coefficients.size ()==5,
@@ -51,29 +51,37 @@ namespace mandy
       this->tensor = 0;
       
       // C_11 = C_22 \mapsto
-      this->tensor[0][0][0][0] = this->tensor[1][1][1][1] = this->coefficients[0];
+      this->tensor[0][0][0][0] = this->coefficients[0];
+      this->tensor[1][1][1][1] = this->coefficients[0];
       
       // C_12 \mapsto
-      this->tensor[0][0][1][1] = this->tensor[1][1][0][0] = this->coefficients[1];
+      this->tensor[0][0][1][1] = this->coefficients[1];
+      this->tensor[1][1][0][0] = this->coefficients[1];
       
       // C_13 = C_23 \mapsto
-      this->tensor[0][0][2][2] = this->tensor[1][1][2][2] = this->coefficients[2];
+      this->tensor[0][0][2][2] = this->coefficients[2];
+      this->tensor[1][1][2][2] = this->coefficients[2];
       
       // C_33 \mapsto
       this->tensor[2][2][2][2] = this->coefficients[3];
       
       // C_44 = C55 \mapsto
-      this->tensor[1][2][1][2] = this->tensor[2][1][1][2] = this->tensor[2][1][2][1] = this->tensor[1][2][2][1]
-	=
-	this->tensor[2][0][2][0] = this->tensor[0][2][2][0] = this->tensor[0][2][0][2] = this->tensor[2][0][0][2]
-	=
-	this->coefficients[4];
+      this->tensor[1][2][1][2] = this->coefficients[4];
+      this->tensor[2][1][1][2] = this->coefficients[4];
+      this->tensor[2][1][2][1] = this->coefficients[4];
+      this->tensor[1][2][2][1] = this->coefficients[4];
+	
+      this->tensor[2][0][2][0] = this->coefficients[4];
+      this->tensor[0][2][2][0] = this->coefficients[4];
+      this->tensor[0][2][0][2] = this->coefficients[4];
+      this->tensor[2][0][0][2] = this->coefficients[4];
       
       // C_66 \mapsto
-      this->tensor[0][1][0][1] = this->tensor[1][0][0][1] = this->tensor[1][0][1][0] = this->tensor[0][1][1][0]
-	=
-	(this->coefficients[0] - this->coefficients[1]) /2.;
-
+      const double coefficient = (this->coefficients[0] - this->coefficients[1]) /2.;
+      this->tensor[0][1][0][1] = coefficient;
+      this->tensor[1][0][0][1] = coefficient;
+      this->tensor[1][0][1][0] = coefficient;
+      this->tensor[0][1][1][0] = coefficient;	
     }
     
   } // namespace Physics
@@ -81,4 +89,4 @@ namespace mandy
 } // namepsace mandy
 
 template class
-mandy::Physics::ElasticTensor<double>;
+mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite, double>;

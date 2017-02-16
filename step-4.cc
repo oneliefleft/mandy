@@ -616,7 +616,7 @@ namespace mandy
     /**
      * Elastic tensor of moduli.
      */
-    mandy::Physics::ElasticTensor<> elastic_tensor;
+    mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor;
     
   }; // LinearElasticity
 
