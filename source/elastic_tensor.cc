@@ -42,7 +42,7 @@ namespace mandy
     {
       // There should be five independent coefficients.
       AssertThrow (this->coefficients.size ()==5,
-		   dealii::ExcDimensionMismatch (this->coefficients.size (), 4));
+		   dealii::ExcDimensionMismatch (this->coefficients.size (), 5));
 
       // Distribute the coefficients on to the tensor. It seems
       // there is no automagic way to do this, so just insert those

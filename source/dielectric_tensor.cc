@@ -40,7 +40,7 @@ namespace mandy
     void
     DielectricTensor<ValueType>::distribute_coefficients ()
     {
-      // There should be five independent coefficients.
+      // There should be two independent coefficients.
       AssertThrow (this->coefficients.size ()==2,
 		   dealii::ExcDimensionMismatch (this->coefficients.size (), 2));
 
