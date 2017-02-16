@@ -504,13 +504,9 @@ namespace mandy
     void run ();
 
     /**
-     * Assemble elastic tensor.
-     *
-     * @note Only one tensor is needed and a superposition of the
-     * coefficients can be passed to this tensor through the function,
-     * distribute_coefficients ().
+     * Get coefficients from the parameter file specified at run time.
      */
-    void assemble_elastic_tensor ();
+    void get_coefficients ();
     
   private:
 
@@ -619,11 +615,6 @@ namespace mandy
     mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor;
 
     /**
-     * Vector of elastic coefficients.
-     */
-    std::vector<double> elastic_coefficients;
-    
-    /**
      * Vector of elastic coefficients of the background.
      */
     std::vector<double> elastic_coefficients_background;
@@ -691,11 +682,11 @@ namespace mandy
 
 
   /**
-   * Run the application in the order specified.
+   * Get elastic coefficients from the parameter file.
    */
   template <int dim>
   void
-  ElasticProblem<dim>::assemble_elastic_tensor ()
+  ElasticProblem<dim>::get_coefficients ()
   {
     
     parameters.enter_subsection ("Elastic coefficients");
@@ -705,23 +696,13 @@ namespace mandy
 
       elastic_coefficients_inclusion = dealii::Utilities::string_to_double
 	(dealii::Utilities::split_string_list (parameters.get ("Inclusion"), ','));
-      
-      pcout << "   Elastic coefficients: "
-	    << std::endl;;
-
-      pcout << "      Background:        ";
-      for (unsigned int i=0;i<elastic_coefficients_background.size (); ++i)
-	pcout << elastic_coefficients_background[i] << " ";
-      pcout << std::endl;
-    
-      pcout << "      Inclusion:         ";
-      for (unsigned int i=0;i<elastic_coefficients_inclusion.size (); ++i)
-	pcout << elastic_coefficients_inclusion[i] << " ";
-      pcout << std::endl;
     }
-
     parameters.leave_subsection ();
 
+    // Check that the materials have the same number of coefficients.
+    AssertThrow (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
+		 dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
+					       elastic_coefficients_inclusion.size ()));
   }
     
 
@@ -740,7 +721,10 @@ namespace mandy
     // computed, the elastic problem can be solved.
     
     // Assemble a copy of the elastic tensors.
-    assemble_elastic_tensor ();
+    get_coefficients ();
+
+    // elastic_tensor.distribute_coefficients ();
+    // elastic_tensor.print ();
   }
   
 } // namespace mandy
