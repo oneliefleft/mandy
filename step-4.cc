@@ -44,8 +44,13 @@
 #include <mandy/matrix_creator.h>
 #include <mandy/vector_creator.h>
 
+#include <mandy/crystal_symmetry_group.h>
+
 #include <fstream>
 #include <iostream>
+
+#include <algorithm>    // std::transform
+#include <functional>   // std::plus
 
 namespace mandy
 {
@@ -509,7 +514,7 @@ namespace mandy
     void get_coefficients ();
     
   private:
-
+    
     /**
      * Make intial coarse grid.
      */
@@ -704,7 +709,194 @@ namespace mandy
 		 dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
 					       elastic_coefficients_inclusion.size ()));
   }
+  
+
+  /**
+   * Setup system matrices and vectors.
+   */
+  template <int dim>
+  void ElasticProblem<dim>::setup_system ()
+  {
+    dealii::TimerOutput::Scope time (timer, "setup system");
+
+    // Determine locally relevant DoFs.
+    dof_handler.distribute_dofs (fe);
+    locally_owned_dofs = dof_handler.locally_owned_dofs ();
+    dealii::DoFTools::extract_locally_relevant_dofs (dof_handler, locally_relevant_dofs);
+
+    // Initialise distributed vectors.
+    locally_relevant_solution.reinit (locally_owned_dofs, locally_relevant_dofs,
+				      mpi_communicator);
+    system_rhs.reinit (locally_owned_dofs,
+		       mpi_communicator);
+
+    // Setup hanging node constraints.
+    constraints.clear ();
+    constraints.reinit (locally_relevant_dofs);
+    dealii::DoFTools::make_hanging_node_constraints (dof_handler, constraints);
+    constraints.close ();
+
+    // Finally, create a distributed sparsity pattern and initialise
+    // the system matrix from that.
+    dealii::DynamicSparsityPattern dsp (locally_relevant_dofs);
+    dealii::DoFTools::make_sparsity_pattern (dof_handler, dsp, constraints, false);
+    dealii::SparsityTools::distribute_sparsity_pattern (dsp,
+							dof_handler.n_locally_owned_dofs_per_processor (),
+							mpi_communicator,
+							locally_relevant_dofs);
+
+    system_matrix.reinit (locally_owned_dofs, locally_owned_dofs,
+                          dsp, mpi_communicator);
+
+  }
+
+
+  
+  /**
+   * Assemble the linear algebra system.
+   */
+  template <int dim>
+  void
+  ElasticProblem<dim>::assemble_system ()
+  {
+    dealii::TimerOutput::Scope time (timer, "assemble system");
+
+    // Asssemble the elastic coefficients at this point.
+    std::vector<double> elastic_coefficients (5);
+
+    for (unsigned int i=0; i<=elastic_coefficients.size (); ++i)
+      elastic_coefficients[i] = elastic_coefficients_background[i] + elastic_coefficients_inclusion[i];
+
+    pcout << "   Elastic coefficients background: ";
+    for (std::vector<double>::iterator it = elastic_coefficients_background.begin ();
+	 it != elastic_coefficients_background.end (); ++it)
+      pcout << " " << *it;
+    pcout << std::endl;
     
+    pcout << "   Elastic coefficients inclusion:  ";
+    for (std::vector<double>::iterator it = elastic_coefficients_inclusion.begin ();
+	 it != elastic_coefficients_inclusion.end (); ++it)
+      pcout << " " << *it;
+    pcout << std::endl;
+
+    pcout << "   Elastic coefficients:            ";
+    for (std::vector<double>::iterator it = elastic_coefficients.begin ();
+	 it != elastic_coefficients.end (); ++it)
+      pcout << " " << *it;
+    pcout << std::endl;
+     
+    elastic_tensor.set_coefficients (elastic_coefficients);
+    elastic_tensor.distribute_coefficients ();
+    
+    pcout << "   Elastic Tensor: ";
+    elastic_tensor.print ();
+    pcout << std::endl;
+    
+
+#ifdef do_stuff
+    
+    // Define quadrature rule to be used.
+    const dealii::QGauss<dim> quadrature_formula (3);
+    
+    // Initialise the function parser.
+    dealii::FunctionParser<dim> material_identification;
+    material_identification.initialize (dealii::FunctionParser<dim>::default_variable_names (),
+					parameters.get ("MaterialID"),
+					typename dealii::FunctionParser<dim>::ConstMap ());
+    
+    dealii::FEValues<dim> fe_values (finite_element, quadrature,
+				     dealii::update_values            |
+				     dealii::update_quadrature_points |
+				     dealii::update_JxW_values);
+    
+    const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
+    const unsigned int n_q_points    = quadrature.size ();
+    
+    dealii::Vector<double> cell_vector (dofs_per_cell); 
+    std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
+    
+    std::vector<double> function_values (n_q_points);
+    
+    typename dealii::DoFHandler<dim>::active_cell_iterator
+      cell = dof_handler.begin_active (),
+      endc = dof_handler.end ();
+    
+    for (; cell!=endc; ++cell)
+      if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_communicator))
+	{
+	  cell_vector = 0;
+	  fe_values.reinit (cell);
+
+	  // Extract vector-values from FEValues.
+	  const dealii::FEValuesExtractors::Vector u (0);
+
+
+	  // Obtain the material identification on this cell and
+	  // transfer it to a strain description.
+	  function_parser.value_list (fe_values.get_quadrature_points (),
+				      function_values);
+
+	  dealii::Tensor<2, dim> distribution;
+	  const double distribution_ratio = 0.01; // Hard-coded (inclusion-reference)/reference ratio
+	  
+	  for (unsigned int a=0; a<dim; ++a)
+	    for (unsigned int b=0; b<dim; ++b)
+	      (a==b)
+		? distribution[a][b] = function_values[q_point] * distribution_ratio - 1.
+		: 0;
+	  
+	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
+	    for (unsigned int j=0; j<dofs_per_cell; ++j)
+	      {
+		const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
+		
+		// Local right hand side vector.
+		cell_vector (j) +=
+		  contract3 (u_j_grad, material_values, distribution) *
+		  fe_values.JxW (q_point);
+	      }
+	  
+	  cell->get_dof_indices (local_dof_indices);
+	  
+	  constraints.distribute_local_to_global (cell_vector,
+						  local_dof_indices,
+						  vector);
+	} // cell!=endc
+    
+    vector.compress (dealii::VectorOperation::add);
+#endif
+
+  }
+  
+
+  /**
+   * Solve the linear algebra system.
+   */
+  template <int dim>
+  unsigned int
+  ElasticProblem<dim>::solve ()
+  {
+    dealii::TimerOutput::Scope time (timer, "solve");
+    
+    dealii::PETScWrappers::MPI::Vector completely_distributed_solution (locally_owned_dofs, mpi_communicator);
+
+    // Solve using conjugate gradient method with no preconditioner
+    // (ie., system_matrix is ignored).
+    dealii::SolverControl solver_control (dof_handler.n_dofs (), 1e-06);
+    dealii::PETScWrappers::SolverCG solver (solver_control, mpi_communicator);
+    dealii::PETScWrappers::PreconditionNone preconditioner (system_matrix);
+    
+    solver.solve (system_matrix, completely_distributed_solution, system_rhs,
+		  preconditioner);
+    
+    // Ensure that all ghost elements are also copied as necessary.
+    constraints.distribute (completely_distributed_solution);
+    locally_relevant_solution = completely_distributed_solution;
+
+    // Return the number of iterations (last step) of the solve.
+    return solver_control.last_step ();
+  }
+  
 
   /**
    * Run the application in the order specified.
@@ -723,8 +915,22 @@ namespace mandy
     // Assemble a copy of the elastic tensors.
     get_coefficients ();
 
-    // elastic_tensor.distribute_coefficients ();
-    // elastic_tensor.print ();
+    // Create a coarse grid according to the parameters given in the
+    // input file.
+    dealii::GridGenerator::hyper_cube (triangulation, -10, 10);
+    triangulation.refine_global (2);
+    
+    pcout << "   Number of active cells:       "
+	  << triangulation.n_global_active_cells ()
+	  << std::endl;
+    
+    setup_system ();
+    
+    pcout << "   Number of degrees of freedom: "
+	  << dof_handler.n_dofs ()
+	  << std::endl;
+    
+    assemble_system ();
   }
   
 } // namespace mandy
