@@ -41,9 +41,9 @@ namespace mandy
     ElasticTensor<CSG, ValueType>::distribute_coefficients ()
     {
       // There should be five independent coefficients.
-      AssertThrow (this->coefficients.size ()==5,
-		   dealii::ExcDimensionMismatch (this->coefficients.size (), 5));
-
+      AssertThrow (this->coefficients_.size ()==5,
+		   dealii::ExcDimensionMismatch (this->coefficients_.size (), 5));
+      
       // Distribute the coefficients on to the tensor. It seems
       // there is no automagic way to do this, so just insert those
       // elements that are non-zero: C_11 = C_22, C_12, C_13 = C_23,
@@ -51,33 +51,33 @@ namespace mandy
       this->tensor = 0;
       
       // C_11 = C_22 \mapsto
-      this->tensor[0][0][0][0] = this->coefficients[0];
-      this->tensor[1][1][1][1] = this->coefficients[0];
+      this->tensor[0][0][0][0] = this->coefficients_[0];
+      this->tensor[1][1][1][1] = this->coefficients_[0];
       
       // C_12 \mapsto
-      this->tensor[0][0][1][1] = this->coefficients[1];
-      this->tensor[1][1][0][0] = this->coefficients[1];
+      this->tensor[0][0][1][1] = this->coefficients_[1];
+      this->tensor[1][1][0][0] = this->coefficients_[1];
       
       // C_13 = C_23 \mapsto
-      this->tensor[0][0][2][2] = this->coefficients[2];
-      this->tensor[1][1][2][2] = this->coefficients[2];
+      this->tensor[0][0][2][2] = this->coefficients_[2];
+      this->tensor[1][1][2][2] = this->coefficients_[2];
       
       // C_33 \mapsto
-      this->tensor[2][2][2][2] = this->coefficients[3];
+      this->tensor[2][2][2][2] = this->coefficients_[3];
       
       // C_44 = C55 \mapsto
-      this->tensor[1][2][1][2] = this->coefficients[4];
-      this->tensor[2][1][1][2] = this->coefficients[4];
-      this->tensor[2][1][2][1] = this->coefficients[4];
-      this->tensor[1][2][2][1] = this->coefficients[4];
+      this->tensor[1][2][1][2] = this->coefficients_[4];
+      this->tensor[2][1][1][2] = this->coefficients_[4];
+      this->tensor[2][1][2][1] = this->coefficients_[4];
+      this->tensor[1][2][2][1] = this->coefficients_[4];
 	
-      this->tensor[2][0][2][0] = this->coefficients[4];
-      this->tensor[0][2][2][0] = this->coefficients[4];
-      this->tensor[0][2][0][2] = this->coefficients[4];
-      this->tensor[2][0][0][2] = this->coefficients[4];
+      this->tensor[2][0][2][0] = this->coefficients_[4];
+      this->tensor[0][2][2][0] = this->coefficients_[4];
+      this->tensor[0][2][0][2] = this->coefficients_[4];
+      this->tensor[2][0][0][2] = this->coefficients_[4];
       
       // C_66 \mapsto
-      const double coefficient = (this->coefficients[0] - this->coefficients[1]) /2.;
+      const double coefficient = (this->coefficients_[0] - this->coefficients_[1]) /2.;
       this->tensor[0][1][0][1] = coefficient;
       this->tensor[1][0][0][1] = coefficient;
       this->tensor[1][0][1][0] = coefficient;

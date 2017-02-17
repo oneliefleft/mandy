@@ -36,8 +36,25 @@ namespace mandy
     template<int rank, int dim, typename ValueType>
     void
     TensorBase<rank, dim, ValueType>::distribute_coefficients ()
-    {}
+    {
+      AssertThrow (false, dealii::ExcPureFunctionCalled ());
+    }
 
+    template<int rank, int dim, typename ValueType>
+    void
+    TensorBase<rank, dim, ValueType>::set_coefficients (std::vector<ValueType> &coefficients)
+    {
+      coefficients_.resize (coefficients.size ());
+      coefficients_ = coefficients;
+    }
+
+  template<int rank, int dim, typename ValueType>
+  void
+  TensorBase<rank, dim, ValueType>::print ()
+  {
+    std::cout << this->tensor;
+  }
+  
 } // namepsace mandy
 
 template class

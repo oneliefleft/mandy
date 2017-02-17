@@ -50,7 +50,7 @@ namespace mandy
     template <enum CrystalSymmetryGroup, typename ValueType = double>
       class ElasticTensor
       :
-      mandy::TensorBase<4,3,ValueType>
+      public mandy::TensorBase<4,3,ValueType>
       {
       public:
       
@@ -58,10 +58,7 @@ namespace mandy
       /**
        * Constructor.
        */
-      ElasticTensor ()
-      {
-	this->coefficients  = std::vector<ValueType> (5);
-      };
+      ElasticTensor () {};
       
       /**
        * Distribute @p coefficients

@@ -47,7 +47,6 @@ namespace mandy
     {
     public:
     
-    
     /**
      * Constructor.
      */
@@ -57,9 +56,19 @@ namespace mandy
     {};
 
     /**
-     * Distribute @p coefficients
+     * Distribute @p coefficients.
      */
     virtual void distribute_coefficients ();
+
+    /**
+     * Set @p coefficients.
+     */
+    void set_coefficients (std::vector<ValueType> &coefficients);
+
+    /**
+     * Print to screen.
+     */
+    void print ();
     
     protected:
     
@@ -71,10 +80,10 @@ namespace mandy
     /**
      * A vector of coefficients.
      */
-    std::vector<ValueType> coefficients;
+    std::vector<ValueType> coefficients_;
     
     }; // TensorBase
-  
+
 } // namepsace mandy
 
 #endif // __mandy_tensor_base_h
