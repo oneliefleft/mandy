@@ -820,6 +820,8 @@ namespace mandy
 
 	      elastic_tensor.set_coefficients (elastic_coefficients);
 	      elastic_tensor.distribute_coefficients ();
+
+	      AssertThrow (elastic_tensor.is_symmetric (), dealii::ExcMessage ("Tensor not symmetric"));
 	      
 	      const double distribution_ratio = 0.01; // Hard-coded (inclusion-reference)/reference ratio
 	      

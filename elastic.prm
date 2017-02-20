@@ -5,5 +5,5 @@ subsection Material
    	   set Lattice inclusion  = 3.0
 
 	   set Elastic background = 1, 2, 3, 4, 5
-   	   set Elastic inclusion  = 1, 2, 3, 4, 5
+   	   set Elastic inclusion  = 1.1, 2.2, 3.3, 4.4, 5.5
 end

@@ -52,7 +52,7 @@ namespace mandy
 		    (std::fabs (this->tensor[i][j][k][l]-this->tensor[j][i][k][l]) > tolerance) ||
 		    (std::fabs (this->tensor[i][j][k][l]-this->tensor[l][k][j][i]) > tolerance))
 		  {
-		    is_symmetric = true;
+		    is_symmetric = false;
 		    break;
 		  }
 	      }
@@ -92,22 +92,22 @@ namespace mandy
       this->tensor[2][2][2][2] = this->coefficients_[3];
       
       // C_44 = C55 \mapsto
-      // this->tensor[1][2][1][2] = this->coefficients_[4];
-      // this->tensor[2][1][1][2] = this->coefficients_[4];
-      // this->tensor[2][1][2][1] = this->coefficients_[4];
-      // this->tensor[1][2][2][1] = this->coefficients_[4];
-	
-      // this->tensor[2][0][2][0] = this->coefficients_[4];
-      // this->tensor[0][2][2][0] = this->coefficients_[4];
-      // this->tensor[0][2][0][2] = this->coefficients_[4];
-      // this->tensor[2][0][0][2] = this->coefficients_[4];
+      this->tensor[1][2][1][2] = this->coefficients_[4];
+      this->tensor[2][1][1][2] = this->coefficients_[4];
+      this->tensor[2][1][2][1] = this->coefficients_[4];
+      this->tensor[1][2][2][1] = this->coefficients_[4];
+      
+      this->tensor[2][0][2][0] = this->coefficients_[4];
+      this->tensor[0][2][2][0] = this->coefficients_[4];
+      this->tensor[0][2][0][2] = this->coefficients_[4];
+      this->tensor[2][0][0][2] = this->coefficients_[4];
       
       // C_66 \mapsto
       const double coefficient = (this->coefficients_[0] - this->coefficients_[1]) /2.;
-      // this->tensor[0][1][0][1] = coefficient;
-      // this->tensor[1][0][0][1] = coefficient;
-      // this->tensor[1][0][1][0] = coefficient;
-      // this->tensor[0][1][1][0] = coefficient;	
+      this->tensor[0][1][0][1] = coefficient;
+      this->tensor[1][0][0][1] = coefficient;
+      this->tensor[1][0][1][0] = coefficient;
+      this->tensor[0][1][1][0] = coefficient;	
     }
     
   } // namespace Physics
