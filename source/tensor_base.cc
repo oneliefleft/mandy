@@ -33,23 +33,30 @@
 namespace mandy
 {
 
-    template<int rank, int dim, typename ValueType>
-    void
-    TensorBase<rank, dim, ValueType>::distribute_coefficients ()
-    {
-      AssertThrow (false, dealii::ExcPureFunctionCalled ());
-    }
-
-    template<int rank, int dim, typename ValueType>
-    void
-    TensorBase<rank, dim, ValueType>::set_coefficients (std::vector<ValueType> &coefficients)
-    {
-      coefficients_.clear ();
-
-      for (unsigned int i=0; i<coefficients.size (); ++i)
-	coefficients_.push_back (coefficients[i]);
-    }
-
+  template<int rank, int dim, typename ValueType>
+  void
+  TensorBase<rank, dim, ValueType>::distribute_coefficients ()
+  {
+    AssertThrow (false, dealii::ExcPureFunctionCalled ());
+  }
+  
+  template<int rank, int dim, typename ValueType>
+  bool
+  TensorBase<rank, dim, ValueType>::is_symmetric (const ValueType tolerance)
+  {
+    AssertThrow (false, dealii::ExcPureFunctionCalled ());
+  }
+  
+  template<int rank, int dim, typename ValueType>
+  void
+  TensorBase<rank, dim, ValueType>::set_coefficients (std::vector<ValueType> &coefficients)
+  {
+    coefficients_.clear ();
+    
+    for (unsigned int i=0; i<coefficients.size (); ++i)
+      coefficients_.push_back (coefficients[i]);
+  }
+  
   template<int rank, int dim, typename ValueType>
   void
   TensorBase<rank, dim, ValueType>::print ()

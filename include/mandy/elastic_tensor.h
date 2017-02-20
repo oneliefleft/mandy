@@ -63,6 +63,11 @@ namespace mandy
        * Distribute @p coefficients
        */ 
       void distribute_coefficients ();
+
+      /**
+       * Explicitly set symmetry of this tensor.
+       */ 
+      bool is_symmetric (const ValueType tolerance = 1e-09);
       
     }; // ElasticTensor
     

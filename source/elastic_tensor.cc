@@ -37,6 +37,30 @@ namespace mandy
   {
 
     template<enum CrystalSymmetryGroup CSG, typename ValueType>
+    bool
+    ElasticTensor<CSG, ValueType>::is_symmetric (const ValueType tolerance)
+    {
+      bool is_symmetric = true;
+      
+      for (unsigned int i=0; i<3; ++i)
+	for (unsigned int j=0; j<3; ++j)
+	  for (unsigned int k=0; k<3; ++k)
+	    for (unsigned int l=0; l<3; ++l)
+	      {
+		if ((std::fabs (this->tensor[i][j][k][l]-this->tensor[i][j][k][l]) > tolerance) ||
+		    (std::fabs (this->tensor[i][j][k][l]-this->tensor[i][j][l][k]) > tolerance) ||
+		    (std::fabs (this->tensor[i][j][k][l]-this->tensor[j][i][k][l]) > tolerance) ||
+		    (std::fabs (this->tensor[i][j][k][l]-this->tensor[l][k][j][i]) > tolerance))
+		  {
+		    is_symmetric = true;
+		    break;
+		  }
+	      }
+      
+      return is_symmetric;
+    }
+    
+    template<enum CrystalSymmetryGroup CSG, typename ValueType>
     void
     ElasticTensor<CSG, ValueType>::distribute_coefficients ()
     {
@@ -55,12 +79,14 @@ namespace mandy
       this->tensor[1][1][1][1] = this->coefficients_[0];
       
       // C_12 \mapsto
-      // this->tensor[0][0][1][1] = this->coefficients_[1];
-      // this->tensor[1][1][0][0] = this->coefficients_[1];
+      this->tensor[0][0][1][1] = this->coefficients_[1];
+      this->tensor[1][1][0][0] = this->coefficients_[1];
       
       // C_13 = C_23 \mapsto
-      // this->tensor[0][0][2][2] = this->coefficients_[2];
-      // this->tensor[1][1][2][2] = this->coefficients_[2];
+      this->tensor[0][0][2][2] = this->coefficients_[2];
+      this->tensor[2][2][0][0] = this->coefficients_[2];
+      this->tensor[1][1][2][2] = this->coefficients_[2];
+      this->tensor[2][2][1][1] = this->coefficients_[2];
       
       // C_33 \mapsto
       this->tensor[2][2][2][2] = this->coefficients_[3];

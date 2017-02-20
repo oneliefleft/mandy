@@ -63,6 +63,11 @@ namespace mandy
     virtual void distribute_coefficients ();
 
     /**
+     *
+     */
+    virtual bool is_symmetric (const ValueType tolerance);
+    
+    /**
      * Set @p coefficients.
      */
     void set_coefficients (std::vector<ValueType> &coefficients);
