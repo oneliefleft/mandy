@@ -91,12 +91,13 @@ namespace mandy
    *
    * @note This is a specialisation of deal.II's contract3 function.
    */
+  template <int dim, typename ValueType>
   inline
-    double contract (const dealii::Tensor<2, 3, double>    &src1,
-		     const mandy::TensorBase<4, 3, double> &src2,
-		     const dealii::Tensor<2, 3, double>    &src3)
+    ValueType contract (const dealii::Tensor<2, dim, ValueType>    &src1,
+			const mandy::TensorBase<4, dim, ValueType> &src2,
+			const dealii::Tensor<2, dim, ValueType>    &src3)
   {
-    contract3 (src1, src2, src3);
+    return contract3 (src1, src2, src3);
   }
   
 } // namepsace mandy

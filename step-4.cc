@@ -744,6 +744,7 @@ namespace mandy
     
     dealii::FEValues<dim> fe_values (finite_element, quadrature_formula,
 				     dealii::update_values            |
+				     dealii::update_gradients         |
 				     dealii::update_quadrature_points |
 				     dealii::update_JxW_values);
     
@@ -753,6 +754,9 @@ namespace mandy
     dealii::Vector<double> cell_vector (dofs_per_cell); 
     std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
 
+    // Get lattice parameters from file.
+    dealii::Tensor<2, dim> lattice_parameters;
+    
     // A vector of material values at each quadrature point and the
     // function to be parsed from the input file.
     std::vector<double> material_function_values (n_q_points);
@@ -801,8 +805,6 @@ namespace mandy
 	  // transfer it to a strain description.
 	  material_function.value_list (fe_values.get_quadrature_points (),
 					material_function_values);
-
-	  dealii::Tensor<2, dim> distribution;
 	  
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
@@ -819,19 +821,19 @@ namespace mandy
 	      for (unsigned int a=0; a<dim; ++a)
 		for (unsigned int b=0; b<dim; ++b)
 		  (a==b)
-		    ? distribution[a][b] = material_function_values[q_point] * distribution_ratio - 1.
+		    ? lattice_parameters[a][b] = material_function_values[q_point] * distribution_ratio - 1.
 		    : 0;
 	      
 	      for (unsigned int j=0; j<dofs_per_cell; ++j)
 		{
-#ifdef assemble_system
+
 		  const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
 		  
 		  // Local right hand side vector.
 		  cell_vector (j) +=
-		    contract3 (u_j_grad, material_values, distribution) *
+		    contract (u_j_grad, elastic_tensor, lattice_parameters) *
 		    fe_values.JxW (q_point);
-#endif
+
 		}
 	    } // q_point
 
