@@ -45,7 +45,7 @@ namespace mandy
   template <int rank, int dim, typename ValueType = double>
     class TensorBase
     :
-    dealii::Tensor<rank, dim, ValueType>
+    public dealii::Tensor<rank, dim, ValueType>
     {
     public:
     
@@ -71,7 +71,7 @@ namespace mandy
      * Print to screen.
      */
     void print ();
-    
+   
     protected:
     
     /**
@@ -83,9 +83,22 @@ namespace mandy
      * A vector of coefficients.
      */
     std::vector<ValueType> coefficients_;
-    
+   
     }; // TensorBase
 
+  /**
+   * Contract all indices in the set of tensors. 
+   *
+   * @note This is a specialisation of deal.II's contract3 function.
+   */
+  inline
+    double contract (const dealii::Tensor<2, 3, double>    &src1,
+		     const mandy::TensorBase<4, 3, double> &src2,
+		     const dealii::Tensor<2, 3, double>    &src3)
+  {
+    contract3 (src1, src2, src3);
+  }
+  
 } // namepsace mandy
 
 #endif // __mandy_tensor_base_h
