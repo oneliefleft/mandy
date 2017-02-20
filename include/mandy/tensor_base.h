@@ -71,7 +71,16 @@ namespace mandy
      * Print to screen.
      */
     void print ();
-   
+
+    /**
+     * Read only access to the underlying data type.
+     */
+    inline
+    dealii::Tensor<rank, dim, ValueType> operator* () const
+    {
+      return this->tensor;
+    }
+    
     protected:
     
     /**
@@ -83,7 +92,7 @@ namespace mandy
      * A vector of coefficients.
      */
     std::vector<ValueType> coefficients_;
-   
+    
     }; // TensorBase
 
   /**
@@ -97,7 +106,7 @@ namespace mandy
 			const mandy::TensorBase<4, dim, ValueType> &src2,
 			const dealii::Tensor<2, dim, ValueType>    &src3)
   {
-    return contract3 (src1, src2, src3);
+    return dealii::contract3 (src1, src2, src3);
   }
   
 } // namepsace mandy
