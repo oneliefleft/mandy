@@ -31,6 +31,8 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/tensor.h>
 
+#include <iostream>
+
 #ifndef __mandy_tensor_base_h
 #define __mandy_tensor_base_h
 

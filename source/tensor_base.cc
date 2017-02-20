@@ -44,8 +44,10 @@ namespace mandy
     void
     TensorBase<rank, dim, ValueType>::set_coefficients (std::vector<ValueType> &coefficients)
     {
-      coefficients_.resize (coefficients.size ());
-      coefficients_ = coefficients;
+      coefficients_.clear ();
+
+      for (unsigned int i=0; i<coefficients.size (); ++i)
+	coefficients_.push_back (coefficients[i]);
     }
 
   template<int rank, int dim, typename ValueType>

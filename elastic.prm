@@ -1,8 +1,9 @@
 subsection Material
+	   set Material function = exp (-x*x-y*y-z*z)
 
-end
+	   set Lattice background = 3.1
+   	   set Lattice inclusion  = 3.0
 
-subsection Elastic coefficients
-	   set Background = 1, 2, 3, 4, 5
-   	   set Inclusion  = 5, 4, 3, 2, 1
+	   set Elastic background = 1, 2, 3, 4, 5
+   	   set Elastic inclusion  = 1, 2, 3, 4, 5
 end

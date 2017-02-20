@@ -567,7 +567,7 @@ namespace mandy
      * Scalar valued finite element primarily used for interpolating
      * material iudentification.
      */
-    dealii::FESystem<dim> fe;
+    dealii::FESystem<dim> finite_element;
 
     /**
      * Index set of locally owned DoFs.
@@ -613,21 +613,16 @@ namespace mandy
      * Input parameter file.
      */
     dealii::ParameterHandler parameters;
-
+    
     /**
      * Tensor of elastic coefficients.
      */
     mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor;
 
     /**
-     * Vector of elastic coefficients of the background.
+     * Vector of elastic coefficients.
      */
-    std::vector<double> elastic_coefficients_background;
-
-    /**
-     * Vector of elastic coefficients of an inclusion.
-     */
-    std::vector<double> elastic_coefficients_inclusion;
+    std::vector<double> elastic_coefficients;
     
   }; // LinearElasticity
 
@@ -644,7 +639,7 @@ namespace mandy
                    (dealii::Triangulation<dim>::smoothing_on_refinement |
                     dealii::Triangulation<dim>::smoothing_on_coarsening)),
     dof_handler (triangulation),
-    fe (dealii::FE_Q<dim> (2), dim),
+    finite_element (dealii::FE_Q<dim> (2), dim),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_communicator) == 0)),
     timer (mpi_communicator, pcout,
@@ -652,23 +647,31 @@ namespace mandy
 	   dealii::TimerOutput::wall_times)
   {
     parameters.enter_subsection ("Material");
-      {
-	// Do something
-      }
-    parameters.leave_subsection ();
-    
-    parameters.enter_subsection ("Elastic coefficients");
     {
-      parameters.declare_entry ("Background",
+      parameters.declare_entry ("Material function", "0",
+				dealii::Patterns::Anything (),
+				"A functional description of the material.");
+
+      parameters.declare_entry ("Lattice background",
+				"0, 0, 0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
+				"Size of the lattice of the background");
+
+      parameters.declare_entry ("Lattice inclusion",
+				"0, 0, 0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
+				"Size of the lattice of an inclusion");
+      
+      parameters.declare_entry ("Elastic background",
 				"0, 0, 0, 0, 0",
 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
 				"Elastic coefficients of the background");
-	
-      parameters.declare_entry ("Inclusion",
+      
+      parameters.declare_entry ("Elastic inclusion",
 				"0, 0, 0, 0, 0",
 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
 				"Elastic coefficients of an inclusion");
-      }
+    }
     parameters.leave_subsection ();
     
     parameters.parse_input (prm);
@@ -684,31 +687,6 @@ namespace mandy
     // Wipe DoF handlers.
     dof_handler.clear ();
   }
-
-
-  /**
-   * Get elastic coefficients from the parameter file.
-   */
-  template <int dim>
-  void
-  ElasticProblem<dim>::get_coefficients ()
-  {
-    
-    parameters.enter_subsection ("Elastic coefficients");
-    {
-      elastic_coefficients_background = dealii::Utilities::string_to_double
-	(dealii::Utilities::split_string_list (parameters.get ("Background"), ','));
-
-      elastic_coefficients_inclusion = dealii::Utilities::string_to_double
-	(dealii::Utilities::split_string_list (parameters.get ("Inclusion"), ','));
-    }
-    parameters.leave_subsection ();
-
-    // Check that the materials have the same number of coefficients.
-    AssertThrow (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
-		 dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
-					       elastic_coefficients_inclusion.size ()));
-  }
   
 
   /**
@@ -720,7 +698,7 @@ namespace mandy
     dealii::TimerOutput::Scope time (timer, "setup system");
 
     // Determine locally relevant DoFs.
-    dof_handler.distribute_dofs (fe);
+    dof_handler.distribute_dofs (finite_element);
     locally_owned_dofs = dof_handler.locally_owned_dofs ();
     dealii::DoFTools::extract_locally_relevant_dofs (dof_handler, locally_relevant_dofs);
 
@@ -760,62 +738,51 @@ namespace mandy
   ElasticProblem<dim>::assemble_system ()
   {
     dealii::TimerOutput::Scope time (timer, "assemble system");
-
-    // Asssemble the elastic coefficients at this point.
-    std::vector<double> elastic_coefficients (5);
-
-    for (unsigned int i=0; i<=elastic_coefficients.size (); ++i)
-      elastic_coefficients[i] = elastic_coefficients_background[i] + elastic_coefficients_inclusion[i];
-
-    pcout << "   Elastic coefficients background: ";
-    for (std::vector<double>::iterator it = elastic_coefficients_background.begin ();
-	 it != elastic_coefficients_background.end (); ++it)
-      pcout << " " << *it;
-    pcout << std::endl;
-    
-    pcout << "   Elastic coefficients inclusion:  ";
-    for (std::vector<double>::iterator it = elastic_coefficients_inclusion.begin ();
-	 it != elastic_coefficients_inclusion.end (); ++it)
-      pcout << " " << *it;
-    pcout << std::endl;
-
-    pcout << "   Elastic coefficients:            ";
-    for (std::vector<double>::iterator it = elastic_coefficients.begin ();
-	 it != elastic_coefficients.end (); ++it)
-      pcout << " " << *it;
-    pcout << std::endl;
-     
-    elastic_tensor.set_coefficients (elastic_coefficients);
-    elastic_tensor.distribute_coefficients ();
-    
-    pcout << "   Elastic Tensor: ";
-    elastic_tensor.print ();
-    pcout << std::endl;
-    
-
-#ifdef do_stuff
-    
+   
     // Define quadrature rule to be used.
     const dealii::QGauss<dim> quadrature_formula (3);
     
-    // Initialise the function parser.
-    dealii::FunctionParser<dim> material_identification;
-    material_identification.initialize (dealii::FunctionParser<dim>::default_variable_names (),
-					parameters.get ("MaterialID"),
-					typename dealii::FunctionParser<dim>::ConstMap ());
-    
-    dealii::FEValues<dim> fe_values (finite_element, quadrature,
+    dealii::FEValues<dim> fe_values (finite_element, quadrature_formula,
 				     dealii::update_values            |
 				     dealii::update_quadrature_points |
 				     dealii::update_JxW_values);
     
     const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
-    const unsigned int n_q_points    = quadrature.size ();
+    const unsigned int n_q_points    = quadrature_formula.size ();
     
     dealii::Vector<double> cell_vector (dofs_per_cell); 
     std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
+
+    // A vector of material values at each quadrature point and the
+    // function to be parsed from the input file.
+    std::vector<double> material_function_values (n_q_points);
+    dealii::FunctionParser<dim> material_function;
+
+    parameters.enter_subsection ("Material");
+    {
+      material_function.initialize (dealii::FunctionParser<dim>::default_variable_names (),
+				    parameters.get ("Material function"),
+				    typename dealii::FunctionParser<dim>::ConstMap ());
+    }
+    parameters.leave_subsection ();
     
-    std::vector<double> function_values (n_q_points);
+    // Get elastic coefficients from input file.
+    std::vector<double> elastic_coefficients_background;
+    std::vector<double> elastic_coefficients_inclusion;
+        
+    parameters.enter_subsection ("Material");
+    {
+      elastic_coefficients_background = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Elastic background"), ','));
+
+      elastic_coefficients_inclusion = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Elastic inclusion"), ','));
+    }
+    parameters.leave_subsection ();
+    
+    AssertThrow (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
+		 dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
+					       elastic_coefficients_inclusion.size ()));
     
     typename dealii::DoFHandler<dim>::active_cell_iterator
       cell = dof_handler.begin_active (),
@@ -830,42 +797,53 @@ namespace mandy
 	  // Extract vector-values from FEValues.
 	  const dealii::FEValuesExtractors::Vector u (0);
 
-
 	  // Obtain the material identification on this cell and
 	  // transfer it to a strain description.
-	  function_parser.value_list (fe_values.get_quadrature_points (),
-				      function_values);
+	  material_function.value_list (fe_values.get_quadrature_points (),
+					material_function_values);
 
 	  dealii::Tensor<2, dim> distribution;
-	  const double distribution_ratio = 0.01; // Hard-coded (inclusion-reference)/reference ratio
-	  
-	  for (unsigned int a=0; a<dim; ++a)
-	    for (unsigned int b=0; b<dim; ++b)
-	      (a==b)
-		? distribution[a][b] = function_values[q_point] * distribution_ratio - 1.
-		: 0;
 	  
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
-	    for (unsigned int j=0; j<dofs_per_cell; ++j)
-	      {
-		const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
-		
-		// Local right hand side vector.
-		cell_vector (j) +=
-		  contract3 (u_j_grad, material_values, distribution) *
-		  fe_values.JxW (q_point);
-	      }
+	    {
+	          
+	      elastic_coefficients.clear ();
+	      for (unsigned int i=0; i<elastic_coefficients_inclusion.size (); ++i)
+		elastic_coefficients.push_back (elastic_coefficients_background[i] + elastic_coefficients_inclusion[i]);
+	      
+	      elastic_tensor.set_coefficients (elastic_coefficients);
+	      elastic_tensor.distribute_coefficients ();
+
+	      const double distribution_ratio = 0.01; // Hard-coded (inclusion-reference)/reference ratio
+	      
+	      for (unsigned int a=0; a<dim; ++a)
+		for (unsigned int b=0; b<dim; ++b)
+		  (a==b)
+		    ? distribution[a][b] = material_function_values[q_point] * distribution_ratio - 1.
+		    : 0;
+	      
+	      for (unsigned int j=0; j<dofs_per_cell; ++j)
+		{
+#ifdef assemble_system
+		  const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
+		  
+		  // Local right hand side vector.
+		  cell_vector (j) +=
+		    contract3 (u_j_grad, material_values, distribution) *
+		    fe_values.JxW (q_point);
+#endif
+		}
+	    } // q_point
+
 	  
 	  cell->get_dof_indices (local_dof_indices);
 	  
 	  constraints.distribute_local_to_global (cell_vector,
 						  local_dof_indices,
-						  vector);
+						  system_rhs);
 	} // cell!=endc
     
-    vector.compress (dealii::VectorOperation::add);
-#endif
-
+    system_rhs.compress (dealii::VectorOperation::add);
   }
   
 
@@ -912,8 +890,8 @@ namespace mandy
     // Once the solution vector from the above problem has been
     // computed, the elastic problem can be solved.
     
-    // Assemble a copy of the elastic tensors.
-    get_coefficients ();
+
+
 
     // Create a coarse grid according to the parameters given in the
     // input file.
