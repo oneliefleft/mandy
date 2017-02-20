@@ -728,7 +728,6 @@ namespace mandy
 
   }
 
-
   
   /**
    * Assemble the linear algebra system.
@@ -750,16 +749,13 @@ namespace mandy
     
     const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
     const unsigned int n_q_points    = quadrature_formula.size ();
-    
+
+    dealii::FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell); 
     dealii::Vector<double> cell_vector (dofs_per_cell); 
     std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
-
-    // Get lattice parameters from file.
-    dealii::Tensor<2, dim> lattice_parameters;
     
     // A vector of material values at each quadrature point and the
     // function to be parsed from the input file.
-    std::vector<double> material_function_values (n_q_points);
     dealii::FunctionParser<dim> material_function;
 
     parameters.enter_subsection ("Material");
@@ -769,6 +765,11 @@ namespace mandy
 				    typename dealii::FunctionParser<dim>::ConstMap ());
     }
     parameters.leave_subsection ();
+
+    std::vector<double> material_function_values (n_q_points);
+
+    // Get lattice parameters from file.
+    dealii::Tensor<2, dim> lattice_parameters;
     
     // Get elastic coefficients from input file.
     std::vector<double> elastic_coefficients_background;
@@ -787,7 +788,7 @@ namespace mandy
     AssertThrow (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
 		 dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
 					       elastic_coefficients_inclusion.size ()));
-    
+   
     typename dealii::DoFHandler<dim>::active_cell_iterator
       cell = dof_handler.begin_active (),
       endc = dof_handler.end ();
@@ -795,6 +796,7 @@ namespace mandy
     for (; cell!=endc; ++cell)
       if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_communicator))
 	{
+	  cell_matrix = 0;
 	  cell_vector = 0;
 	  fe_values.reinit (cell);
 
@@ -805,17 +807,20 @@ namespace mandy
 	  // transfer it to a strain description.
 	  material_function.value_list (fe_values.get_quadrature_points (),
 					material_function_values);
-	  
+
+  
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
 	          
 	      elastic_coefficients.clear ();
+
 	      for (unsigned int i=0; i<elastic_coefficients_inclusion.size (); ++i)
-		elastic_coefficients.push_back (elastic_coefficients_background[i] + elastic_coefficients_inclusion[i]);
-	      
+		elastic_coefficients.push_back (material_function_values[q_point]*elastic_coefficients_inclusion[i] +
+						(1.-material_function_values[q_point])*elastic_coefficients_background[i]);
+
 	      elastic_tensor.set_coefficients (elastic_coefficients);
 	      elastic_tensor.distribute_coefficients ();
-
+	      
 	      const double distribution_ratio = 0.01; // Hard-coded (inclusion-reference)/reference ratio
 	      
 	      for (unsigned int a=0; a<dim; ++a)
@@ -823,28 +828,38 @@ namespace mandy
 		  (a==b)
 		    ? lattice_parameters[a][b] = material_function_values[q_point] * distribution_ratio - 1.
 		    : 0;
-	      
-	      for (unsigned int j=0; j<dofs_per_cell; ++j)
-		{
 
-		  const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
-		  
-		  // Local right hand side vector.
-		  cell_vector (j) +=
-		    contract (u_j_grad, elastic_tensor, lattice_parameters) *
-		    fe_values.JxW (q_point);
-
+		  for (unsigned int i=0; i<dofs_per_cell; ++i)
+		    {
+		      const dealii::Tensor<2, dim> u_i_grad = fe_values[u].symmetric_gradient (i, q_point);
+		      
+		      for (unsigned int j=0; j<dofs_per_cell; ++j)
+			{
+			  const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
+			  
+			  // Local stiffness matrix.
+			  cell_matrix (i,j) +=
+			    contract (u_i_grad, elastic_tensor, u_j_grad) *
+			    fe_values.JxW (q_point);
+			  
+			} 
+			  
+		      // Local right hand side vector.
+		      cell_vector (i) +=
+			contract (u_i_grad, elastic_tensor, lattice_parameters) *
+			fe_values.JxW (q_point);
+		      
 		}
 	    } // q_point
-
 	  
 	  cell->get_dof_indices (local_dof_indices);
 	  
-	  constraints.distribute_local_to_global (cell_vector,
+	  constraints.distribute_local_to_global (cell_matrix, cell_vector,
 						  local_dof_indices,
-						  system_rhs);
+						  system_matrix, system_rhs);
 	} // cell!=endc
-    
+
+    system_matrix.compress (dealii::VectorOperation::add);
     system_rhs.compress (dealii::VectorOperation::add);
   }
   
@@ -897,8 +912,8 @@ namespace mandy
 
     // Create a coarse grid according to the parameters given in the
     // input file.
-    dealii::GridGenerator::hyper_cube (triangulation, -10, 10);
-    triangulation.refine_global (2);
+    dealii::GridGenerator::hyper_cube (triangulation, -5, 5);
+    triangulation.refine_global (3);
     
     pcout << "   Number of active cells:       "
 	  << triangulation.n_global_active_cells ()
@@ -911,6 +926,16 @@ namespace mandy
 	  << std::endl;
     
     assemble_system ();
+
+    const unsigned int n_iterations = solve ();
+    
+    pcout << "   Solved in " << n_iterations
+	  << " iterations."
+	  << std::endl;
+    
+    pcout << "   Linfty-norm:                  "
+	  << locally_relevant_solution.linfty_norm ()
+	  << std::endl;
   }
   
 } // namespace mandy
