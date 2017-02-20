@@ -106,7 +106,7 @@ namespace mandy
 			const mandy::TensorBase<4, dim, ValueType> &src2,
 			const dealii::Tensor<2, dim, ValueType>    &src3)
   {
-    return dealii::contract3 (src1, src2, src3);
+    return dealii::contract3 (src1, *src2, src3);
   }
   
 } // namepsace mandy
