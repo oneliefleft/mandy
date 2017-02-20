@@ -711,6 +711,9 @@ namespace mandy
     // Setup hanging node constraints.
     constraints.clear ();
     constraints.reinit (locally_relevant_dofs);
+
+    PUT CONSTRAINTS HERE
+    
     dealii::DoFTools::make_hanging_node_constraints (dof_handler, constraints);
     constraints.close ();
 
@@ -807,7 +810,6 @@ namespace mandy
 	  // transfer it to a strain description.
 	  material_function.value_list (fe_values.get_quadrature_points (),
 					material_function_values);
-
   
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
@@ -914,7 +916,7 @@ namespace mandy
 
     // Create a coarse grid according to the parameters given in the
     // input file.
-    dealii::GridGenerator::hyper_cube (triangulation, -5, 5);
+    dealii::GridGenerator::hyper_cube (triangulation, -2.5, 2.5);
     triangulation.refine_global (3);
     
     pcout << "   Number of active cells:       "
