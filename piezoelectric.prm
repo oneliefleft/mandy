@@ -1,0 +1,19 @@
+subsection Material
+	   set Material function = exp (-x*x-y*y-z*z)
+
+# lattice constants of AlN/GaN at 300K www.ioffe.ru
+	   set Lattice background = 3.112, 4.982
+   	   set Lattice inclusion  = 3.189, 5.125
+
+# elastic constants of AlN/GaN at 300K www.ioffe.ru
+	   set Elastic background = 410, 149,  99, 389, 125
+   	   set Elastic inclusion  = 390, 145, 106, 398, 105
+
+# dielectric constants of AlN/GaN at 300K www.ioffe.ru
+  	   set Dielectric background =  9.14, 8.5
+	   set Dielectric inclusion  = 10.40, 9.5
+
+# piezoelectric constants of AlN/GaN at 300K www.ioffe.ru
+  	   set Piezoelectric background = -0.48, -0.58, 1.55
+	   set Piezoelectric inclusion  = -0.30, -0.33, 0.65
+end
