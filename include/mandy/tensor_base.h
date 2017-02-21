@@ -113,6 +113,20 @@ namespace mandy
   {
     return dealii::contract3 (src1, *src2, src3);
   }
+
+  /**
+   * Contract all indices in the set of tensors. 
+   *
+   * @note This is a specialisation of deal.II's contract3 function.
+   */
+  template <int dim, typename ValueType>
+  inline
+    ValueType contract (const dealii::Tensor<2, dim, ValueType>    &src1,
+			const mandy::TensorBase<4, dim, ValueType> &src2,
+			const mandy::TensorBase<2, dim, ValueType> &src3)
+  {
+    return dealii::contract3 (src1, *src2, *src3);
+  }
   
 } // namepsace mandy
 

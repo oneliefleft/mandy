@@ -42,7 +42,7 @@ namespace mandy
   
   template<int rank, int dim, typename ValueType>
   bool
-  TensorBase<rank, dim, ValueType>::is_symmetric (const ValueType tolerance)
+  TensorBase<rank, dim, ValueType>::is_symmetric (const ValueType /*tolerance*/)
   {
     AssertThrow (false, dealii::ExcPureFunctionCalled ());
   }
@@ -66,5 +66,5 @@ namespace mandy
   
 } // namepsace mandy
 
-template class
-mandy::TensorBase<4, 3, double>;
+template class mandy::TensorBase<2, 3, double>;
+template class mandy::TensorBase<4, 3, double>;

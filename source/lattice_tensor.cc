@@ -53,9 +53,8 @@ namespace mandy
       this->tensor[0][0] = this->coefficients_[0];
       this->tensor[1][1] = this->coefficients_[0];
       
-      // L_12 \mapsto
+      // L_33 \mapsto
       this->tensor[2][2] = this->coefficients_[1];
-     
     }
     
   } // namespace Physics

@@ -109,7 +109,6 @@ namespace mandy
       this->tensor[1][0][1][0] = coefficient;
       this->tensor[0][1][1][0] = coefficient;	
     }
-    
   } // namespace Physics
 
 } // namepsace mandy
