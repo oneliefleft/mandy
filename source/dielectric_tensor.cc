@@ -40,13 +40,21 @@ namespace mandy
     void
     DielectricTensor<CSG, ValueType>::distribute_coefficients ()
     {
-      // There should be two independent coefficients.
-      AssertThrow (this->coefficients.size ()==2,
-		   dealii::ExcDimensionMismatch (this->coefficients.size (), 2));
-
-      // Distribute the coefficients on to the tensor. 
+      // There should be five independent coefficients.
+      AssertThrow (this->coefficients_.size ()==2,
+		   dealii::ExcDimensionMismatch (this->coefficients_.size (), 2));
+      
+      // Distribute the coefficients on to the tensor. It seems
+      // there is no automagic way to do this, so just insert those
+      // elements that are non-zero: L_11 = L_22, L_33.
       this->tensor = 0;
       
+      // L_11 = L_22 \mapsto
+      this->tensor[0][0] = this->coefficients_[0];
+      this->tensor[1][1] = this->coefficients_[0];
+      
+      // L_33 \mapsto
+      this->tensor[2][2] = this->coefficients_[1];
     }
     
   } // namespace Physics

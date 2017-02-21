@@ -30,8 +30,10 @@ ADD_LIBRARY(mandy
   source/matrix_creator.cc
   source/vector_creator.cc
   # physics
+  source/dielectric_tensor.cc
   source/elastic_tensor.cc
   source/lattice_tensor.cc
+  source/piezoelectric_tensor.cc
   source/tensor_base.cc
   )
 

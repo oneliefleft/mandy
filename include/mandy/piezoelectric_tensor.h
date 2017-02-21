@@ -28,44 +28,50 @@
 // 
 // -----------------------------------------------------------------------------
 
+#include <deal.II/base/exceptions.h>
+#include <deal.II/base/tensor.h>
+
+#include <mandy/crystal_symmetry_group.h>
 #include <mandy/tensor_base.h>
+
+#ifndef __mandy_piezoelectric_tensor_h
+#define __mandy_piezoelectric_tensor_h
 
 namespace mandy
 {
-
-  template<int rank, int dim, typename ValueType>
-  void
-  TensorBase<rank, dim, ValueType>::distribute_coefficients ()
-  {
-    AssertThrow (false, dealii::ExcPureFunctionCalled ());
-  }
   
-  template<int rank, int dim, typename ValueType>
-  bool
-  TensorBase<rank, dim, ValueType>::is_symmetric (const ValueType /*tolerance*/)
+  namespace Physics
   {
-    AssertThrow (false, dealii::ExcPureFunctionCalled ());
-  }
-  
-  template<int rank, int dim, typename ValueType>
-  void
-  TensorBase<rank, dim, ValueType>::set_coefficients (std::vector<ValueType> &coefficients)
-  {
-    coefficients_.clear ();
     
-    for (unsigned int i=0; i<coefficients.size (); ++i)
-      coefficients_.push_back (coefficients[i]);
-  }
-  
-  template<int rank, int dim, typename ValueType>
-  void
-  TensorBase<rank, dim, ValueType>::print ()
-  {
-    std::cout << this->tensor;
-  }
+    /**
+     * A class that describes the piezoelectric tensor.
+     */ 
+    template <enum CrystalSymmetryGroup, typename ValueType = double>
+      class PiezoelectricTensor
+      :
+      public mandy::TensorBase<3,3,ValueType>
+      {
+      public:
+      
+      /**
+       * Constructor.
+       */
+      PiezoelectricTensor () {};
+      
+      /**
+       * Distribute @p coefficients
+       */ 
+      void distribute_coefficients ();
+
+      /**
+       * Explicitly set symmetry of this tensor.
+       */ 
+      bool is_symmetric (const ValueType tolerance = 1e-09);
+      
+    }; // PiezoelectricTensor
+    
+  } // namespace Physics
   
 } // namepsace mandy
 
-template class mandy::TensorBase<2, 3, double>;
-template class mandy::TensorBase<3, 3, double>;
-template class mandy::TensorBase<4, 3, double>;
+#endif // __mandy_piezoelectric_tensor_h

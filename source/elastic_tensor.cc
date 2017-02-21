@@ -47,8 +47,7 @@ namespace mandy
 	  for (unsigned int k=0; k<3; ++k)
 	    for (unsigned int l=0; l<3; ++l)
 	      {
-		if ((std::fabs (this->tensor[i][j][k][l]-this->tensor[i][j][k][l]) > tolerance) ||
-		    (std::fabs (this->tensor[i][j][k][l]-this->tensor[i][j][l][k]) > tolerance) ||
+		if ((std::fabs (this->tensor[i][j][k][l]-this->tensor[i][j][l][k]) > tolerance) ||
 		    (std::fabs (this->tensor[i][j][k][l]-this->tensor[j][i][k][l]) > tolerance) ||
 		    (std::fabs (this->tensor[i][j][k][l]-this->tensor[l][k][j][i]) > tolerance))
 		  {

@@ -57,9 +57,7 @@ namespace mandy
        * Constructor.
        */
       DielectricTensor ()
-      {
-	this->coefficients  = std::vector<ValueType> (2);
-      };
+      {};
       
       /**
        * Distribute @p coefficients
