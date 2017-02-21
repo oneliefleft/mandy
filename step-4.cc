@@ -702,6 +702,16 @@ namespace mandy
       // 				"0, 0",
       // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
       // 				"Piezoelectric coefficients of an inclusion");
+
+      // parameters.declare_entry ("Polarelectric background",
+      // 				"0, 0",
+      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 1, ","),
+      // 				"Polarelectric coefficients of the background");
+      
+      // parameters.declare_entry ("Polarelectric inclusion",
+      // 				"0, 0",
+      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 1, ","),
+      // 				"Polarelectric coefficients of an inclusion");
     }
     parameters.leave_subsection ();
     
