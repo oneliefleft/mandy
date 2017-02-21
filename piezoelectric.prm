@@ -16,4 +16,8 @@ subsection Material
 # piezoelectric constants of AlN/GaN at 300K www.ioffe.ru
   	   set Piezoelectric background = -0.48, -0.58, 1.55
 	   set Piezoelectric inclusion  = -0.30, -0.33, 0.65
+
+# polarelectric constants of AlN/GaN at unknown source
+  	   set Polarelectric background = -0.081
+	   set Polarelectric inclusion  = -0.029
 end
