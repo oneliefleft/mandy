@@ -2,6 +2,10 @@
 # top level CMakeLists.txt
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8.8)
 
+#SET(TARGET "step-0-material")
+#SET(TARGET "step-1-elastic")
+SET(TARGET "step-2-piezoelectric")
+
 FIND_PACKAGE (deal.II 8.5.0 REQUIRED
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
@@ -43,9 +47,9 @@ INCLUDE_DIRECTORIES(include
   ${CMAKE_SOURCE_DIR}/mandy/include
   )
 
-ADD_EXECUTABLE (step-4 step-4.cc)
-DEAL_II_SETUP_TARGET (step-4)
-TARGET_LINK_LIBRARIES (step-4 mandy)
+ADD_EXECUTABLE (${TARGET} ${TARGET}.cc)
+DEAL_II_SETUP_TARGET (${TARGET})
+TARGET_LINK_LIBRARIES (${TARGET} mandy)
 
 
 
