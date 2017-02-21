@@ -34,8 +34,8 @@
 #include <mandy/crystal_symmetry_group.h>
 #include <mandy/tensor_base.h>
 
-#ifndef __mandy_elastic_tensor_h
-#define __mandy_elastic_tensor_h
+#ifndef __mandy_dielectric_tensor_h
+#define __mandy_dielectric_tensor_h
 
 namespace mandy
 {
@@ -56,8 +56,7 @@ namespace mandy
       /**
        * Constructor.
        */
-      DielectricTensor ()
-      {};
+      DielectricTensor () {};
       
       /**
        * Distribute @p coefficients
@@ -70,4 +69,4 @@ namespace mandy
   
 } // namepsace mandy
 
-#endif // __mandy_elastic_tensor_h
+#endif // __mandy_dielectric_tensor_h

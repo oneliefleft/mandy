@@ -28,48 +28,34 @@
 // 
 // -----------------------------------------------------------------------------
 
-#include <mandy/tensor_base.h>
+#include <mandy/polarelectric_tensor.h>
 
 namespace mandy
 {
 
-  template<int rank, int dim, typename ValueType>
-  void
-  TensorBase<rank, dim, ValueType>::distribute_coefficients ()
+  namespace Physics
   {
-    AssertThrow (false, dealii::ExcPureFunctionCalled ());
-  }
-  
-  template<int rank, int dim, typename ValueType>
-  bool
-  TensorBase<rank, dim, ValueType>::is_symmetric (const ValueType /*tolerance*/)
-  {
-    AssertThrow (false, dealii::ExcPureFunctionCalled ());
 
-    // Prevent the compiler from warning about no return statement in
-    // function returning non-void [-Wreturn-type].
-    return false;
-  }
-  
-  template<int rank, int dim, typename ValueType>
-  void
-  TensorBase<rank, dim, ValueType>::set_coefficients (std::vector<ValueType> &coefficients)
-  {
-    coefficients_.clear ();
+    template<enum CrystalSymmetryGroup CSG, typename ValueType>
+    void
+    PolarelectricTensor<CSG, ValueType>::distribute_coefficients ()
+    {
+      // There should be five independent coefficients.
+      AssertThrow (this->coefficients_.size ()==1,
+		   dealii::ExcDimensionMismatch (this->coefficients_.size (), 1));
+      
+      // Distribute the coefficients on to the tensor. It seems
+      // there is no automagic way to do this, so just insert those
+      // elements that are non-zero: P_33.
+      this->tensor = 0;
+
+      // P_33 \mapsto
+      this->tensor[2][2] = this->coefficients_[1];
+    }
     
-    for (unsigned int i=0; i<coefficients.size (); ++i)
-      coefficients_.push_back (coefficients[i]);
-  }
-  
-  template<int rank, int dim, typename ValueType>
-  void
-  TensorBase<rank, dim, ValueType>::print ()
-  {
-    std::cout << this->tensor;
-  }
-  
+  } // namespace Physics
+
 } // namepsace mandy
 
-template class mandy::TensorBase<2, 3, double>;
-template class mandy::TensorBase<3, 3, double>;
-template class mandy::TensorBase<4, 3, double>;
+template class
+mandy::Physics::PolarelectricTensor<mandy::CrystalSymmetryGroup::wurtzite, double>;

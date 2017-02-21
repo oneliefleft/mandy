@@ -34,6 +34,7 @@ ADD_LIBRARY(mandy
   source/elastic_tensor.cc
   source/lattice_tensor.cc
   source/piezoelectric_tensor.cc
+  source/polarelectric_tensor.cc
   source/tensor_base.cc
   )
 
