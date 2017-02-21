@@ -41,6 +41,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <mandy/elastic_tensor.h>
+#include <mandy/lattice_tensor.h>
 #include <mandy/matrix_creator.h>
 #include <mandy/vector_creator.h>
 
@@ -623,7 +624,17 @@ namespace mandy
      * Vector of elastic coefficients.
      */
     std::vector<double> elastic_coefficients;
-    
+
+    /**
+     * Tensor of lattice coefficients.
+     */
+    mandy::Physics::LatticeTensor<mandy::CrystalSymmetryGroup::wurtzite> lattice_tensor;
+
+    /**
+     * Vector of lattice coefficients.
+     */
+    std::vector<double> lattice_coefficients;
+
   }; // LinearElasticity
 
 
@@ -712,9 +723,8 @@ namespace mandy
     constraints.clear ();
     constraints.reinit (locally_relevant_dofs);
 
-    PUT CONSTRAINTS HERE
-    
     dealii::DoFTools::make_hanging_node_constraints (dof_handler, constraints);
+    dealii::DoFTools::make_zero_boundary_constraints (dof_handler, constraints);
     constraints.close ();
 
     // Finally, create a distributed sparsity pattern and initialise
@@ -772,14 +782,21 @@ namespace mandy
     std::vector<double> material_function_values (n_q_points);
 
     // Get lattice parameters from file.
-    dealii::Tensor<2, dim> lattice_parameters;
-    
+    std::vector<double> lattice_coefficients_background;
+    std::vector<double> lattice_coefficients_inclusion;
+
     // Get elastic coefficients from input file.
     std::vector<double> elastic_coefficients_background;
     std::vector<double> elastic_coefficients_inclusion;
-        
+    
     parameters.enter_subsection ("Material");
     {
+      lattice_coefficients_background = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Lattice background"), ','));
+
+      lattice_coefficients_inclusion = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Lattice inclusion"), ','));
+
       elastic_coefficients_background = dealii::Utilities::string_to_double
 	(dealii::Utilities::split_string_list (parameters.get ("Elastic background"), ','));
 
@@ -822,38 +839,39 @@ namespace mandy
 
 	      elastic_tensor.set_coefficients (elastic_coefficients);
 	      elastic_tensor.distribute_coefficients ();
-
-	      AssertThrow (elastic_tensor.is_symmetric (), dealii::ExcMessage ("Tensor not symmetric"));
 	      
-	      const double distribution_ratio = 0.01; // Hard-coded (inclusion-reference)/reference ratio
-	      
-	      for (unsigned int a=0; a<dim; ++a)
-		for (unsigned int b=0; b<dim; ++b)
-		  (a==b)
-		    ? lattice_parameters[a][b] = material_function_values[q_point] * distribution_ratio - 1.
-		    : 0;
+	      Assert (elastic_tensor.is_symmetric (), dealii::ExcMessage ("Tensor not symmetric"));
 
-		  for (unsigned int i=0; i<dofs_per_cell; ++i)
+	      lattice_coefficients.clear ();
+	      
+	      for (unsigned int i=0; i<lattice_coefficients_inclusion.size (); ++i)
+		lattice_coefficients.push_back (material_function_values[q_point] *
+						(lattice_coefficients_inclusion[i]/lattice_coefficients_background[i]) - 1.);
+	      lattice_tensor.set_coefficients (lattice_coefficients);
+	      lattice_tensor.distribute_coefficients ();
+	      
+	      for (unsigned int i=0; i<dofs_per_cell; ++i)
+		{
+		  const dealii::Tensor<2, dim> u_i_grad = fe_values[u].symmetric_gradient (i, q_point);
+		  
+		  for (unsigned int j=0; j<dofs_per_cell; ++j)
 		    {
-		      const dealii::Tensor<2, dim> u_i_grad = fe_values[u].symmetric_gradient (i, q_point);
+		      const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
 		      
-		      for (unsigned int j=0; j<dofs_per_cell; ++j)
-			{
-			  const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
-			  
-			  // Local stiffness matrix.
-			  cell_matrix (i,j) +=
-			    contract (u_i_grad, elastic_tensor, u_j_grad) *
-			    fe_values.JxW (q_point);
-			  
-			} 
-			  
-		      // Local right hand side vector.
-		      cell_vector (i) +=
-			contract (u_i_grad, elastic_tensor, lattice_parameters) *
+		      // Local stiffness matrix.
+		      cell_matrix (i,j) +=
+			contract (u_i_grad, elastic_tensor, u_j_grad) *
 			fe_values.JxW (q_point);
 		      
+		    } 
+		  
+		  // Local right hand side vector.
+		  cell_vector (i) +=
+		    contract (u_i_grad, elastic_tensor, lattice_tensor) *
+		    fe_values.JxW (q_point);
+		  
 		}
+
 	    } // q_point
 	  
 	  cell->get_dof_indices (local_dof_indices);
@@ -878,12 +896,9 @@ namespace mandy
     dealii::TimerOutput::Scope time (timer, "solve");
     
     dealii::PETScWrappers::MPI::Vector completely_distributed_solution (locally_owned_dofs, mpi_communicator);
-
-    // Solve using conjugate gradient method with no preconditioner
-    // (ie., system_matrix is ignored).
     dealii::SolverControl solver_control (dof_handler.n_dofs (), 1e-06);
-    dealii::PETScWrappers::SolverCG solver (solver_control, mpi_communicator);
-    dealii::PETScWrappers::PreconditionNone preconditioner (system_matrix);
+    dealii::PETScWrappers::SolverBicgstab solver (solver_control, mpi_communicator);
+    dealii::PETScWrappers::PreconditionBlockJacobi preconditioner (system_matrix);
     
     solver.solve (system_matrix, completely_distributed_solution, system_rhs,
 		  preconditioner);
@@ -894,6 +909,56 @@ namespace mandy
 
     // Return the number of iterations (last step) of the solve.
     return solver_control.last_step ();
+  }
+
+
+  /**
+   * Output results.
+   */
+  template <int dim>
+  void
+  ElasticProblem<dim>::output_results (const unsigned int cycle)
+  {
+    dealii::TimerOutput::Scope time (timer, "output_results");
+
+    dealii::DataOut<dim> data_out;
+    data_out.attach_dof_handler (dof_handler);
+    data_out.add_data_vector (locally_relevant_solution, "displacement");
+
+    dealii::Vector<float> subdomain (triangulation.n_active_cells ());
+    for (unsigned int i=0; i<subdomain.size(); ++i)
+      subdomain (i) = triangulation.locally_owned_subdomain ();
+    data_out.add_data_vector (subdomain, "subdomain");
+
+    data_out.build_patches ();
+    
+    const std::string filename = ("displacement-" +
+                                  dealii::Utilities::int_to_string (cycle, 2) +
+                                  "." +
+                                  dealii::Utilities::int_to_string
+                                  (triangulation.locally_owned_subdomain (), 4));
+
+    std::ofstream output ((filename + ".vtu").c_str ());
+    data_out.write_vtu (output);
+
+    if (dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 1)
+      {
+	std::vector<std::string> filenames;
+	
+	for (unsigned int i=0;
+	     i<dealii::Utilities::MPI::n_mpi_processes (mpi_communicator);
+	     ++i)
+	  filenames.push_back ("displacement-" +
+			       dealii::Utilities::int_to_string (cycle, 2) +
+			       "." +
+			       dealii::Utilities::int_to_string (i, 4) +
+			       ".vtu");
+	std::ofstream master_output (("displacement-" +
+				      dealii::Utilities::int_to_string (cycle, 2) +
+				      ".pvtu").c_str ());
+
+	data_out.write_pvtu_record (master_output, filenames);
+      }
   }
   
 
@@ -940,6 +1005,8 @@ namespace mandy
     pcout << "   Linfty-norm:                  "
 	  << locally_relevant_solution.linfty_norm ()
 	  << std::endl;
+
+    output_results (0);
   }
   
 } // namespace mandy
