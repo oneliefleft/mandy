@@ -37,6 +37,12 @@ CMakeFiles
 Makefile
 cmake_install.cmake
 
-* Output generated data.
+# Output generated data.
 *.pvtu
 *.vtu
+
+# Project generated/required files
+step-*
+!step-0-material.cc
+!step-1-electric.cc
+!step-2-piezoelectric.cc
