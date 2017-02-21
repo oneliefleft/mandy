@@ -683,25 +683,25 @@ namespace mandy
 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
 				"Elastic coefficients of an inclusion");
 
-      parameters.declare_entry ("Dielectric background",
-				"0, 0",
-				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 2, ","),
-				"Dielectric coefficients of the background");
+      // parameters.declare_entry ("Dielectric background",
+      // 				"0, 0",
+      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 2, ","),
+      // 				"Dielectric coefficients of the background");
       
-      parameters.declare_entry ("Dielectric inclusion",
-				"0, 0",
-				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 2, ","),
-				"Dielectric coefficients of an inclusion");
+      // parameters.declare_entry ("Dielectric inclusion",
+      // 				"0, 0",
+      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 2, ","),
+      // 				"Dielectric coefficients of an inclusion");
 
-      parameters.declare_entry ("Piezoelectric background",
-				"0, 0",
-				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
-				"Piezoelectric coefficients of the background");
+      // parameters.declare_entry ("Piezoelectric background",
+      // 				"0, 0",
+      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
+      // 				"Piezoelectric coefficients of the background");
       
-      parameters.declare_entry ("Piezoelectric inclusion",
-				"0, 0",
-				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
-				"Piezoelectric coefficients of an inclusion");
+      // parameters.declare_entry ("Piezoelectric inclusion",
+      // 				"0, 0",
+      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
+      // 				"Piezoelectric coefficients of an inclusion");
     }
     parameters.leave_subsection ();
     
