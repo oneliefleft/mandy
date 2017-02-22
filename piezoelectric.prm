@@ -6,8 +6,8 @@ subsection Material
    	   set Lattice inclusion  = 3.189, 5.125
 
 # elastic constants of AlN/GaN at 300K www.ioffe.ru
-	   set Elastic background = 410, 149,  99, 389, 125
-   	   set Elastic inclusion  = 390, 145, 106, 398, 105
+#	   set Elastic background = 410, 149,  99, 389, 125
+#   	   set Elastic inclusion  = 390, 145, 106, 398, 105
 
 # dielectric constants of AlN/GaN at 300K www.ioffe.ru
   	   set Dielectric background =  9.14, 8.5

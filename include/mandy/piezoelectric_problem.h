@@ -153,10 +153,14 @@ namespace mandy
     dealii::DoFHandler<dim> vector_dof_handler;
 
     /**
-     * Scalar valued finite element primarily used for interpolating
-     * material iudentification.
+     * Scalar valued finite element.
      */
-    dealii::FESystem<dim> finite_element;
+    dealii::FESystem<dim> scalar_finite_element;
+
+    /**
+     * Vector valued finite element.
+     */
+    dealii::FESystem<dim> vector_finite_element;
 
     /**
      * Index set of locally owned DoFs.
@@ -184,6 +188,11 @@ namespace mandy
     dealii::PETScWrappers::MPI::Vector locally_relevant_solution;
 
     /**
+     * Locally relevant displacement vector.
+     */
+    dealii::PETScWrappers::MPI::Vector locally_relevant_displacement;
+    
+    /**
      * System right hand side function - interpolated function.
      */
     dealii::PETScWrappers::MPI::Vector system_rhs;
@@ -206,12 +215,12 @@ namespace mandy
     /**
      * Tensor of elastic coefficients.
      */
-    mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor;
+    /* mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor; */
 
     /**
      * Vector of elastic coefficients.
      */
-    std::vector<double> elastic_coefficients;
+    /* std::vector<double> elastic_coefficients; */
 
     /**
      * Tensor of dielectric coefficients.

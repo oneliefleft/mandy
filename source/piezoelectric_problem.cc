@@ -21,9 +21,8 @@ namespace mandy
     triangulation (&triangulation),
     scalar_dof_handler (triangulation),
     vector_dof_handler (triangulation),
-    finite_element (dealii::FE_Q<dim> (2), dim,
-		    dealii::FE_Q<dim> (2), 1),
-    // finite_element (dealii::FE_Q<dim> (2), dim),
+    scalar_finite_element (dealii::FE_Q<dim> (2), 1),
+    vector_finite_element (dealii::FE_Q<dim> (2), 1),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_comm) == 0)),
     timer (mpi_comm, pcout,
@@ -46,15 +45,15 @@ namespace mandy
 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
 				"Size of the lattice of an inclusion");
       
-      parameters.declare_entry ("Elastic background",
-				"0, 0, 0, 0, 0",
-				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
-				"Elastic coefficients of the background");
+      // parameters.declare_entry ("Elastic background",
+      // 				"0, 0, 0, 0, 0",
+      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
+      // 				"Elastic coefficients of the background");
       
-      parameters.declare_entry ("Elastic inclusion",
-				"0, 0, 0, 0, 0",
-				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
-				"Elastic coefficients of an inclusion");
+      // parameters.declare_entry ("Elastic inclusion",
+      // 				"0, 0, 0, 0, 0",
+      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
+      // 				"Elastic coefficients of an inclusion");
 
       parameters.declare_entry ("Dielectric background",
 				"0, 0",
@@ -114,7 +113,7 @@ namespace mandy
     dealii::TimerOutput::Scope time (timer, "setup system");
 
     // Determine locally relevant DoFs.
-    scalar_dof_handler.distribute_dofs (finite_element);
+    scalar_dof_handler.distribute_dofs (scalar_finite_element);
     locally_owned_dofs = scalar_dof_handler.locally_owned_dofs ();
     dealii::DoFTools::extract_locally_relevant_dofs (scalar_dof_handler, locally_relevant_dofs);
 
@@ -158,13 +157,19 @@ namespace mandy
     // Define quadrature rule to be used.
     const dealii::QGauss<dim> quadrature_formula (3);
     
-    dealii::FEValues<dim> fe_values (finite_element, quadrature_formula,
-				     dealii::update_values            |
-				     dealii::update_gradients         |
-				     dealii::update_quadrature_points |
-				     dealii::update_JxW_values);
+    dealii::FEValues<dim> scalar_fe_values (scalar_finite_element, quadrature_formula,
+					    dealii::update_values            |
+					    dealii::update_gradients         |
+					    dealii::update_quadrature_points |
+					    dealii::update_JxW_values);
     
-    const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
+    dealii::FEValues<dim> vector_fe_values (vector_finite_element, quadrature_formula,
+					    dealii::update_values            |
+					    dealii::update_gradients         |
+					    dealii::update_quadrature_points |
+					    dealii::update_JxW_values);
+    
+    const unsigned int dofs_per_cell = scalar_finite_element.dofs_per_cell;
     const unsigned int n_q_points    = quadrature_formula.size ();
 
     dealii::FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell); 
@@ -183,15 +188,19 @@ namespace mandy
     }
     parameters.leave_subsection ();
 
+    // Material function values.
     std::vector<double> material_function_values (n_q_points);
 
+    // Displacement function values.
+    std::vector<dealii::Tensor<1, dim> > displacement_function_values (n_q_points, dealii::Tensor<1, dim> ());
+    
     // Lattice coefficients from file.
     std::vector<double> lattice_coefficients_background;
     std::vector<double> lattice_coefficients_inclusion;
 
     // Elastic coefficients from input file.
-    std::vector<double> elastic_coefficients_background;
-    std::vector<double> elastic_coefficients_inclusion;
+    // std::vector<double> elastic_coefficients_background;
+    // std::vector<double> elastic_coefficients_inclusion;
 
     // Dielectric coefficients from input file.
     std::vector<double> dielectric_coefficients_background;
@@ -214,11 +223,11 @@ namespace mandy
       lattice_coefficients_inclusion = dealii::Utilities::string_to_double
 	(dealii::Utilities::split_string_list (parameters.get ("Lattice inclusion"), ','));
 
-      elastic_coefficients_background = dealii::Utilities::string_to_double
-	(dealii::Utilities::split_string_list (parameters.get ("Elastic background"), ','));
+      // elastic_coefficients_background = dealii::Utilities::string_to_double
+      // 	(dealii::Utilities::split_string_list (parameters.get ("Elastic background"), ','));
 
-      elastic_coefficients_inclusion = dealii::Utilities::string_to_double
-	(dealii::Utilities::split_string_list (parameters.get ("Elastic inclusion"), ','));
+      // elastic_coefficients_inclusion = dealii::Utilities::string_to_double
+      // 	(dealii::Utilities::split_string_list (parameters.get ("Elastic inclusion"), ','));
 
       dielectric_coefficients_background = dealii::Utilities::string_to_double
 	(dealii::Utilities::split_string_list (parameters.get ("Dielectric background"), ','));
@@ -244,9 +253,9 @@ namespace mandy
 	    dealii::ExcDimensionMismatch (lattice_coefficients_background.size (),
 					  lattice_coefficients_inclusion.size ()));
     
-    Assert (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
-	    dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
-					  elastic_coefficients_inclusion.size ()));
+    // Assert (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
+    // 	    dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
+    // 					  elastic_coefficients_inclusion.size ()));
 
     Assert (dielectric_coefficients_background.size ()==dielectric_coefficients_inclusion.size (),
 	    dealii::ExcDimensionMismatch (dielectric_coefficients_background.size (),
@@ -269,23 +278,22 @@ namespace mandy
 	{
 	  cell_matrix = 0;
 	  cell_vector = 0;
-	  fe_values.reinit (cell);
 
-	  // Extract vector-values from FEValues.
+	  scalar_fe_values.reinit (cell);
+	  vector_fe_values.reinit (cell);
+
+	  // Extract scalar- and vector-values from FEValues.
+	  const dealii::FEValuesExtractors::Scalar phi (0);
 	  const dealii::FEValuesExtractors::Vector u (0);
-
-	  // Extract scalar-values from FEValues.
-	  const dealii::FEValuesExtractors::Scalar phi (dim);
 
 	  // Obtain the material identification using scalar-values on
 	  // this cell and transfer it to a strain description.
-	  material_function.value_list (fe_values.get_quadrature_points (),
+	  material_function.value_list (scalar_fe_values.get_quadrature_points (),
 					material_function_values);
 
 	  // Obtain the values of the displacements using
 	  // vector-values on this cell.
-	  //
-	  // -- ??
+	  vector_fe_values[u].get_function_values (locally_relevant_displacement, displacement_function_values);
 	  
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
@@ -300,14 +308,14 @@ namespace mandy
 	      lattice_tensor.distribute_coefficients ();
 
 	      // Build the elastic tensor.
-	      elastic_coefficients.clear ();
+	      // elastic_coefficients.clear ();
 
-	      for (unsigned int i=0; i<elastic_coefficients_inclusion.size (); ++i)
-		elastic_coefficients.push_back (material_function_values[q_point]*elastic_coefficients_inclusion[i] +
-						(1.-material_function_values[q_point])*elastic_coefficients_background[i]);
+	      // for (unsigned int i=0; i<elastic_coefficients_inclusion.size (); ++i)
+	      // 	elastic_coefficients.push_back (material_function_values[q_point]*elastic_coefficients_inclusion[i] +
+	      // 					(1.-material_function_values[q_point])*elastic_coefficients_background[i]);
 
-	      elastic_tensor.set_coefficients (elastic_coefficients);
-	      elastic_tensor.distribute_coefficients ();
+	      // elastic_tensor.set_coefficients (elastic_coefficients);
+	      // elastic_tensor.distribute_coefficients ();
 
 	      // Build the dielectric tensor.
 	      dielectric_coefficients.clear ();
@@ -341,11 +349,9 @@ namespace mandy
 	      
 	      for (unsigned int i=0; i<dofs_per_cell; ++i)
 		{
-		  // const dealii::Tensor<2, dim> u_i_grad = fe_values[u].symmetric_gradient (i, q_point);
 		  
 		  for (unsigned int j=0; j<dofs_per_cell; ++j)
 		    {
-		      // const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
 		      
 		      // Local stiffness matrix.
 		      // cell_matrix (i,j) +=
@@ -356,7 +362,7 @@ namespace mandy
 		  
 		  // Local right hand side vector.
 		  // cell_vector (i) +=
-		  //   contract (u_i_grad, elastic_tensor, lattice_tensor) *
+		  //   contract (phi, piezoelectric_tensor, displacement_function_values) *
 		  //   fe_values.JxW (q_point);
 		  
 		}
