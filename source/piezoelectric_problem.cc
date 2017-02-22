@@ -20,7 +20,8 @@ namespace mandy
     mpi_comm (mpi_communicator),
     triangulation (&triangulation),
     dof_handler (triangulation),
-    finite_element (dealii::FE_Q<dim> (2), dim),
+    finite_element (dealii::FE_Q<dim> (2), 1),
+    // finite_element (dealii::FE_Q<dim> (2), dim),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_comm) == 0)),
     timer (mpi_comm, pcout,
@@ -182,13 +183,26 @@ namespace mandy
 
     std::vector<double> material_function_values (n_q_points);
 
-    // Get lattice parameters from file.
+    // Lattice coefficients from file.
     std::vector<double> lattice_coefficients_background;
     std::vector<double> lattice_coefficients_inclusion;
 
-    // Get elastic coefficients from input file.
+    // Elastic coefficients from input file.
     std::vector<double> elastic_coefficients_background;
     std::vector<double> elastic_coefficients_inclusion;
+
+    // Dielectric coefficients from input file.
+    std::vector<double> dielectric_coefficients_background;
+    std::vector<double> dielectric_coefficients_inclusion;
+    
+    // Piezoelectric coefficients from input file.
+    std::vector<double> piezoelectric_coefficients_background;
+    std::vector<double> piezoelectric_coefficients_inclusion;
+
+    // Polarelectric coefficients from input file.
+    std::vector<double> polarelectric_coefficients_background;
+    std::vector<double> polarelectric_coefficients_inclusion;
+
     
     parameters.enter_subsection ("Material");
     {
@@ -203,13 +217,47 @@ namespace mandy
 
       elastic_coefficients_inclusion = dealii::Utilities::string_to_double
 	(dealii::Utilities::split_string_list (parameters.get ("Elastic inclusion"), ','));
+
+      dielectric_coefficients_background = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Dielectric background"), ','));
+
+      dielectric_coefficients_inclusion = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Dielectric inclusion"), ','));
+
+      piezoelectric_coefficients_background = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Piezoelectric background"), ','));
+
+      piezoelectric_coefficients_inclusion = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Piezoelectric inclusion"), ','));
+
+      polarelectric_coefficients_background = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Polarelectric background"), ','));
+
+      polarelectric_coefficients_inclusion = dealii::Utilities::string_to_double
+	(dealii::Utilities::split_string_list (parameters.get ("Polarelectric inclusion"), ','));
     }
     parameters.leave_subsection ();
+
+    Assert (lattice_coefficients_background.size ()==lattice_coefficients_inclusion.size (),
+	    dealii::ExcDimensionMismatch (lattice_coefficients_background.size (),
+					  lattice_coefficients_inclusion.size ()));
     
-    AssertThrow (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
-		 dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
-					       elastic_coefficients_inclusion.size ()));
-   
+    Assert (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
+	    dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
+					  elastic_coefficients_inclusion.size ()));
+
+    Assert (dielectric_coefficients_background.size ()==dielectric_coefficients_inclusion.size (),
+	    dealii::ExcDimensionMismatch (dielectric_coefficients_background.size (),
+					  dielectric_coefficients_inclusion.size ()));
+
+    Assert (piezoelectric_coefficients_background.size ()==piezoelectric_coefficients_inclusion.size (),
+	    dealii::ExcDimensionMismatch (piezoelectric_coefficients_background.size (),
+					  piezoelectric_coefficients_inclusion.size ()));
+
+    Assert (polarelectric_coefficients_background.size ()==polarelectric_coefficients_inclusion.size (),
+	    dealii::ExcDimensionMismatch (polarelectric_coefficients_background.size (),
+					  polarelectric_coefficients_inclusion.size ()));
+    
     typename dealii::DoFHandler<dim>::active_cell_iterator
       cell = dof_handler.begin_active (),
       endc = dof_handler.end ();
@@ -231,7 +279,17 @@ namespace mandy
   
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
-	          
+
+	      // Build the lattice tensor.
+	      lattice_coefficients.clear ();
+	      
+	      for (unsigned int i=0; i<lattice_coefficients_inclusion.size (); ++i)
+		lattice_coefficients.push_back (material_function_values[q_point] *
+						(lattice_coefficients_inclusion[i]/lattice_coefficients_background[i]) - 1.);
+	      lattice_tensor.set_coefficients (lattice_coefficients);
+	      lattice_tensor.distribute_coefficients ();
+
+	      // Build the elastic tensor.
 	      elastic_coefficients.clear ();
 
 	      for (unsigned int i=0; i<elastic_coefficients_inclusion.size (); ++i)
@@ -240,36 +298,56 @@ namespace mandy
 
 	      elastic_tensor.set_coefficients (elastic_coefficients);
 	      elastic_tensor.distribute_coefficients ();
-	      
-	      Assert (elastic_tensor.is_symmetric (), dealii::ExcMessage ("Tensor not symmetric"));
 
-	      lattice_coefficients.clear ();
-	      
-	      for (unsigned int i=0; i<lattice_coefficients_inclusion.size (); ++i)
-		lattice_coefficients.push_back (material_function_values[q_point] *
-						(lattice_coefficients_inclusion[i]/lattice_coefficients_background[i]) - 1.);
-	      lattice_tensor.set_coefficients (lattice_coefficients);
-	      lattice_tensor.distribute_coefficients ();
+	      // Build the dielectric tensor.
+	      dielectric_coefficients.clear ();
+
+	      for (unsigned int i=0; i<dielectric_coefficients_inclusion.size (); ++i)
+		dielectric_coefficients.push_back (material_function_values[q_point]*dielectric_coefficients_inclusion[i] +
+						   (1.-material_function_values[q_point])*dielectric_coefficients_background[i]);
+
+	      dielectric_tensor.set_coefficients (dielectric_coefficients);
+	      dielectric_tensor.distribute_coefficients ();
+
+	      // Build the piezoelectric tensor.
+	      piezoelectric_coefficients.clear ();
+
+	      for (unsigned int i=0; i<piezoelectric_coefficients_inclusion.size (); ++i)
+		piezoelectric_coefficients.push_back (material_function_values[q_point]*piezoelectric_coefficients_inclusion[i] +
+						      (1.-material_function_values[q_point])*piezoelectric_coefficients_background[i]);
+
+	      piezoelectric_tensor.set_coefficients (piezoelectric_coefficients);
+	      piezoelectric_tensor.distribute_coefficients ();
+
+	      // Build the polarelectric tensor.
+	      polarelectric_coefficients.clear ();
+
+	      for (unsigned int i=0; i<polarelectric_coefficients_inclusion.size (); ++i)
+		polarelectric_coefficients.push_back (material_function_values[q_point]*polarelectric_coefficients_inclusion[i] +
+						      (1.-material_function_values[q_point])*polarelectric_coefficients_background[i]);
+
+	      polarelectric_tensor.set_coefficients (polarelectric_coefficients);
+	      polarelectric_tensor.distribute_coefficients ();
 	      
 	      for (unsigned int i=0; i<dofs_per_cell; ++i)
 		{
-		  const dealii::Tensor<2, dim> u_i_grad = fe_values[u].symmetric_gradient (i, q_point);
+		  // const dealii::Tensor<2, dim> u_i_grad = fe_values[u].symmetric_gradient (i, q_point);
 		  
 		  for (unsigned int j=0; j<dofs_per_cell; ++j)
 		    {
-		      const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
+		      // const dealii::Tensor<2, dim> u_j_grad = fe_values[u].symmetric_gradient (j, q_point);
 		      
 		      // Local stiffness matrix.
-		      cell_matrix (i,j) +=
-			contract (u_i_grad, elastic_tensor, u_j_grad) *
-			fe_values.JxW (q_point);
+		      // cell_matrix (i,j) +=
+		      // 	contract (u_i_grad, elastic_tensor, u_j_grad) *
+		      // 	fe_values.JxW (q_point);
 		      
 		    } 
 		  
 		  // Local right hand side vector.
-		  cell_vector (i) +=
-		    contract (u_i_grad, elastic_tensor, lattice_tensor) *
-		    fe_values.JxW (q_point);
+		  // cell_vector (i) +=
+		  //   contract (u_i_grad, elastic_tensor, lattice_tensor) *
+		  //   fe_values.JxW (q_point);
 		  
 		}
 
@@ -390,18 +468,18 @@ namespace mandy
 	
 	assemble_system ();
 	
-	const unsigned int n_iterations = solve ();
+	// const unsigned int n_iterations = solve ();
 	
-	pcout << "   Solved in " << n_iterations
-	      << " iterations."
-	      << std::endl;
+	// pcout << "   Solved in " << n_iterations
+	//       << " iterations."
+	//       << std::endl;
 	
-	pcout << "   Linfty-norm:                  "
-	      << locally_relevant_solution.linfty_norm ()
-	      << std::endl;
+	// pcout << "   Linfty-norm:                  "
+	//       << locally_relevant_solution.linfty_norm ()
+	//       << std::endl;
 
-	if (dealii::Utilities::MPI::n_mpi_processes (mpi_comm) <= 32)
-	  output_results (cycle);
+	// if (dealii::Utilities::MPI::n_mpi_processes (mpi_comm) <= 32)
+	//   output_results (cycle);
       }
   }
   

@@ -202,6 +202,36 @@ namespace mandy
     std::vector<double> elastic_coefficients;
 
     /**
+     * Tensor of dielectric coefficients.
+     */
+    mandy::Physics::DielectricTensor<mandy::CrystalSymmetryGroup::wurtzite> dielectric_tensor;
+
+    /**
+     * Vector of dielectric coefficients.
+     */
+    std::vector<double> dielectric_coefficients;
+
+    /**
+     * Tensor of piezoelectric coefficients.
+     */
+    mandy::Physics::PiezoelectricTensor<mandy::CrystalSymmetryGroup::wurtzite> piezoelectric_tensor;
+
+    /**
+     * Vector of piezoelectric coefficients.
+     */
+    std::vector<double> piezoelectric_coefficients;
+
+    /**
+     * Tensor of polarelectric coefficients.
+     */
+    mandy::Physics::PolarelectricTensor<mandy::CrystalSymmetryGroup::wurtzite> polarelectric_tensor;
+
+    /**
+     * Vector of polarelectric coefficients.
+     */
+    std::vector<double> polarelectric_coefficients;
+
+    /**
      * Tensor of lattice coefficients.
      */
     mandy::Physics::LatticeTensor<mandy::CrystalSymmetryGroup::wurtzite> lattice_tensor;
