@@ -40,8 +40,11 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <mandy/dielectric_tensor.h>
 #include <mandy/elastic_tensor.h>
 #include <mandy/lattice_tensor.h>
+#include <mandy/piezoelectric_tensor.h>
+#include <mandy/polarelectric_tensor.h>
 
 #include <mandy/crystal_symmetry_group.h>
 
@@ -51,8 +54,8 @@
 #include <algorithm>    // std::transform
 #include <functional>   // std::plus
 
-#ifndef __elastic_problem_h
-#define __elastic_problem_h
+#ifndef __piezoelectric_problem_h
+#define __piezoelectric_problem_h
 
 namespace mandy
 {
@@ -61,21 +64,21 @@ namespace mandy
    * the Laplace-type and b is a linear function.
    */
   template <int dim>
-  class ElasticProblem
+  class PiezoelectricProblem
   {
   public:
 
     /**
      * Class constructor.
      */
-    ElasticProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
-		    MPI_Comm                                          &mpi_communicator,
-		    const std::string                                 &prm);
+    PiezoelectricProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
+			  MPI_Comm                                          &mpi_communicator,
+			  const std::string                                 &prm);
 
     /**
      * Class destructor.
      */
-    ~ElasticProblem ();
+    ~PiezoelectricProblem ();
 
     /**
      * Wrapper function, that controls the order of excecution.
@@ -208,8 +211,8 @@ namespace mandy
      */
     std::vector<double> lattice_coefficients;
 
-  }; // ElasticProblem
+  }; // PiezoelectricProblem
   
 } // namespace mandy
 
-#endif // __elastic_problem_h
+#endif // __piezoelectric_problem_h

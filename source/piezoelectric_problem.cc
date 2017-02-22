@@ -1,4 +1,4 @@
-#include <mandy/elastic_problem.h>
+#include <mandy/piezoelectric_problem.h>
 
 #include <fstream>
 #include <iostream>
@@ -13,7 +13,7 @@ namespace mandy
    * Class constructor.
    */
   template <int dim>
-  ElasticProblem<dim>::ElasticProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
+  PiezoelectricProblem<dim>::PiezoelectricProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
 				       MPI_Comm                                          &mpi_communicator,
 				       const std::string                                 &prm)
     :
@@ -52,6 +52,37 @@ namespace mandy
 				"0, 0, 0, 0, 0",
 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
 				"Elastic coefficients of an inclusion");
+
+      parameters.declare_entry ("Dielectric background",
+				"0, 0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 2, ","),
+				"Dielectric coefficients of the background");
+      
+      parameters.declare_entry ("Dielectric inclusion",
+				"0, 0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 2, ","),
+				"Dielectric coefficients of an inclusion");
+
+      parameters.declare_entry ("Piezoelectric background",
+				"0, 0, 0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
+				"Piezoelectric coefficients of the background");
+	    
+      parameters.declare_entry ("Piezoelectric inclusion",
+				"0, 0, 0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
+				"Piezoelectric coefficients of an inclusion");
+
+      parameters.declare_entry ("Polarelectric background",
+				"0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 1, ","),
+				"Polarelectric coefficients of the background");
+	    
+      parameters.declare_entry ("Polarelectric inclusion",
+				"0",
+				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 1, ","),
+				"Polarelectric coefficients of an inclusion");
+      
     }
     parameters.leave_subsection ();
     
@@ -63,7 +94,7 @@ namespace mandy
    * Class destructor.
    */
   template <int dim>
-  ElasticProblem<dim>::~ElasticProblem ()
+  PiezoelectricProblem<dim>::~PiezoelectricProblem ()
   {
     // Wipe DoF handlers.
     dof_handler.clear ();
@@ -74,7 +105,7 @@ namespace mandy
    * Setup system matrices and vectors.
    */
   template <int dim>
-  void ElasticProblem<dim>::setup_system ()
+  void PiezoelectricProblem<dim>::setup_system ()
   {
     dealii::TimerOutput::Scope time (timer, "setup system");
 
@@ -117,7 +148,7 @@ namespace mandy
    */
   template <int dim>
   void
-  ElasticProblem<dim>::assemble_system ()
+  PiezoelectricProblem<dim>::assemble_system ()
   {
     dealii::TimerOutput::Scope time (timer, "assemble system");
    
@@ -261,7 +292,7 @@ namespace mandy
    */
   template <int dim>
   unsigned int
-  ElasticProblem<dim>::solve ()
+  PiezoelectricProblem<dim>::solve ()
   {
     dealii::TimerOutput::Scope time (timer, "solve");
     
@@ -287,7 +318,7 @@ namespace mandy
    */
   template <int dim>
   void
-  ElasticProblem<dim>::output_results (const unsigned int cycle)
+  PiezoelectricProblem<dim>::output_results (const unsigned int cycle)
   {
     dealii::TimerOutput::Scope time (timer, "output_results");
 
@@ -337,14 +368,14 @@ namespace mandy
    */
   template <int dim>
   void
-  ElasticProblem<dim>::run ()
+  PiezoelectricProblem<dim>::run ()
   {
     const unsigned int n_cycles = 1;
     
     for (unsigned int cycle=0; cycle<n_cycles; ++cycle)
       {
 	
-	pcout << "ElasticProblem:: Cycle " << cycle << ':'
+	pcout << "PiezoelectricProblem:: Cycle " << cycle << ':'
 	      << std::endl;
 	
 	pcout << "   Number of active cells:       "
@@ -376,4 +407,4 @@ namespace mandy
   
 } // namespace mandy
 
-template class mandy::ElasticProblem<3>;
+template class mandy::PiezoelectricProblem<3>;

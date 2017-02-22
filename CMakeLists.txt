@@ -45,6 +45,7 @@ ADD_LIBRARY(mandy
   source/function_tools.cc
   # base models
   source/elastic_problem.cc
+  source/piezoelectric_problem.cc
   )
 
 DEAL_II_SETUP_TARGET (mandy)

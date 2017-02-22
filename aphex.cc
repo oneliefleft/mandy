@@ -45,6 +45,7 @@
 #include <mandy/function_tools.h>
 
 #include <mandy/elastic_problem.h>
+#include <mandy/piezoelectric_problem.h>
 
 #include <fstream>
 #include <iostream>
@@ -88,6 +89,16 @@ namespace aphex
     dealii::parallel::distributed::Triangulation<dim> triangulation;
 
     /**
+     * Solution of the elastic problem.
+     */
+    dealii::PETScWrappers::MPI::Vector displacement;
+
+    /**
+     * Solution of the piezoelectric.
+     */
+    dealii::PETScWrappers::MPI::Vector piezoelectric_potential;
+    
+    /**
      * Parallel iostream.
      */
     dealii::ConditionalOStream pcout;
@@ -126,26 +137,31 @@ namespace aphex
 
     try
       {
-	dealii::TimerOutput::Scope time (timer, "make coarse grid");
+	dealii::TimerOutput::Scope time (timer, "aphex");
 	
-	// Create a coarse grid according to the parameters given in the
-	// input file.
 	dealii::GridGenerator::hyper_cube (triangulation, -10, 10);
 	// triangulation.refine_global (parameters.get_integer ("Global mesh refinement steps"));
 	triangulation.refine_global (3);
 
 	{
-	  mandy::FunctionTools<3> material (triangulation, "material.prm");
-	  material.run ();
+	  // mandy::FunctionTools<3> material (triangulation, "material.prm");
+	  // material.run ();
 	}
 
 	{
-	  mandy::ElasticProblem<3> elastic_problem (triangulation, "elastic.prm");
+	  dealii::TimerOutput::Scope time (timer, "elastic problem");
+	  mandy::ElasticProblem<3> elastic_problem (triangulation, mpi_communicator,
+						    "elastic.prm");
 	  elastic_problem.run ();
 	}
-	
-	// mandy::PiezoelectricProblem<3> piezoelectric_problem ("piezoelectric.prm");
-	// piezoelectric_problem.run ();
+
+	{
+	  dealii::TimerOutput::Scope time (timer, "piezoelectric problem");
+	  mandy::PiezoelectricProblem<3> piezoelectric_problem (triangulation, mpi_communicator,
+								"piezoelectric.prm");
+	  piezoelectric_problem.run ();
+	}
+
       }
     
     catch (std::exception &exc)
