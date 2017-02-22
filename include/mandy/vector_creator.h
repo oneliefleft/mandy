@@ -94,11 +94,6 @@ namespace mandy
 	      function_parser.value_list (fe_values.get_quadrature_points (),
 					  function_values);
 
-	      std::cout << "Function values ";
-	      for (unsigned int i=0; i<n_q_points; ++i)
-		std::cout << function_values[i] << " ";
-	      std::cout << std::endl;
-	      
 	      for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 		for (unsigned int j=0; j<dofs_per_cell; ++j)
 		   {

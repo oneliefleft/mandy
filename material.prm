@@ -5,5 +5,5 @@
 set Global mesh refinement steps         = 3
 
 # A functional description of the material ID.
-set MaterialID                           = exp (-x*x-y*y-z*z)
+set MaterialFunction                     = exp (-x*x-y*y-z*z)
 

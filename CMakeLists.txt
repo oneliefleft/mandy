@@ -40,6 +40,8 @@ ADD_LIBRARY(mandy
   source/piezoelectric_tensor.cc
   source/polarelectric_tensor.cc
   source/tensor_base.cc
+  # tools
+  source/function_tools.cc
   )
 
 DEAL_II_SETUP_TARGET (mandy)
