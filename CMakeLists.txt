@@ -4,7 +4,8 @@ CMAKE_MINIMUM_REQUIRED (VERSION 2.8.8)
 
 #SET(TARGET "step-0-material")
 #SET(TARGET "step-1-elastic")
-SET(TARGET "step-2-piezoelectric")
+#SET(TARGET "step-2-piezoelectric")
+SET(TARGET "aphex")
 
 FIND_PACKAGE (deal.II 8.5.0 REQUIRED
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
@@ -42,6 +43,8 @@ ADD_LIBRARY(mandy
   source/tensor_base.cc
   # tools
   source/function_tools.cc
+  # base models
+  source/elastic_problem.cc
   )
 
 DEAL_II_SETUP_TARGET (mandy)

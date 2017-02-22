@@ -44,6 +44,8 @@
 
 #include <mandy/function_tools.h>
 
+#include <mandy/elastic_problem.h>
+
 #include <fstream>
 #include <iostream>
 
@@ -124,11 +126,23 @@ namespace aphex
 
     try
       {
-	mandy::FunctionTools<3> material ("material.prm");
-	material.run ();
+	dealii::TimerOutput::Scope time (timer, "make coarse grid");
 	
-	// mandy::ElasticProblem<3> elastic_problem ("elastic.prm");
-	// elastic_problem.run ();
+	// Create a coarse grid according to the parameters given in the
+	// input file.
+	dealii::GridGenerator::hyper_cube (triangulation, -10, 10);
+	// triangulation.refine_global (parameters.get_integer ("Global mesh refinement steps"));
+	triangulation.refine_global (3);
+
+	{
+	  mandy::FunctionTools<3> material (triangulation, "material.prm");
+	  material.run ();
+	}
+
+	{
+	  mandy::ElasticProblem<3> elastic_problem (triangulation, "elastic.prm");
+	  elastic_problem.run ();
+	}
 	
 	// mandy::PiezoelectricProblem<3> piezoelectric_problem ("piezoelectric.prm");
 	// piezoelectric_problem.run ();
