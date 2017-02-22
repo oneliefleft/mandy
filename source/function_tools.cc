@@ -14,20 +14,18 @@ namespace mandy
    * Class constructor.
    */
   template <int dim>
-  FunctionTools<dim>::FunctionTools (const std::string &prm)
+  FunctionTools<dim>::FunctionTools (dealii::parallel::distributed::Triangulation<dim> &triangulation,
+				     const std::string                                 &prm)
     :
     mpi_communicator (MPI_COMM_WORLD),
-    triangulation (mpi_communicator,
-                   typename dealii::Triangulation<dim>::MeshSmoothing
-                   (dealii::Triangulation<dim>::smoothing_on_refinement |
-                    dealii::Triangulation<dim>::smoothing_on_coarsening)),
+    triangulation (&triangulation),
     dof_handler (triangulation),
     fe (dealii::FE_Q<dim> (2), 1),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_communicator) == 0)),
     timer (mpi_communicator, pcout,
-	   dealii::TimerOutput::summary,
-	   dealii::TimerOutput::wall_times)
+     	   dealii::TimerOutput::summary,
+     	   dealii::TimerOutput::wall_times)
   {
     parameters.declare_entry ("Global mesh refinement steps", "5",
                               dealii::Patterns::Integer (0, 20),
@@ -50,23 +48,6 @@ namespace mandy
   {
     // Wipe DoF handlers.
     dof_handler.clear ();
-  }
-
-
-  /**
-   * Make initial coarse grid.
-   */
-  template <int dim>
-  void
-  FunctionTools<dim>::make_coarse_grid ()
-  {
-    dealii::TimerOutput::Scope time (timer, "make coarse grid");
-
-    // Create a coarse grid according to the parameters given in the
-    // input file.
-    dealii::GridGenerator::hyper_cube (triangulation, -10, 10);
-    
-    triangulation.refine_global (parameters.get_integer ("Global mesh refinement steps"));
   }
 
 
@@ -192,9 +173,9 @@ namespace mandy
     data_out.attach_dof_handler (dof_handler);
     data_out.add_data_vector (locally_relevant_solution, "material_id");
 
-    dealii::Vector<float> subdomain (triangulation.n_active_cells ());
+    dealii::Vector<float> subdomain ((*triangulation).n_active_cells ());
     for (unsigned int i=0; i<subdomain.size(); ++i)
-      subdomain (i) = triangulation.locally_owned_subdomain ();
+      subdomain (i) = (*triangulation).locally_owned_subdomain ();
     data_out.add_data_vector (subdomain, "subdomain");
 
     data_out.build_patches ();
@@ -203,7 +184,7 @@ namespace mandy
                                   dealii::Utilities::int_to_string (cycle, 2) +
                                   "." +
                                   dealii::Utilities::int_to_string
-                                  (triangulation.locally_owned_subdomain (), 4));
+                                  ((*triangulation).locally_owned_subdomain (), 4));
 
     std::ofstream output ((filename + ".vtu").c_str ());
     data_out.write_vtu (output);
@@ -238,7 +219,7 @@ namespace mandy
   {
     dealii::TimerOutput::Scope time (timer, "refine grid");
 
-    dealii::Vector<float> estimated_error_per_cell (triangulation.n_active_cells());
+    dealii::Vector<float> estimated_error_per_cell ((*triangulation).n_active_cells());
     
     dealii::KellyErrorEstimator<dim>::estimate (dof_handler, dealii::QGauss<dim-1>(4),
 						typename dealii::FunctionMap<dim>::type (),
@@ -246,11 +227,11 @@ namespace mandy
 						estimated_error_per_cell);
 
     dealii::parallel::distributed::GridRefinement::
-      refine_and_coarsen_fixed_number (triangulation,
+      refine_and_coarsen_fixed_number ((*triangulation),
 				       estimated_error_per_cell,
 				       0.250, 0.025);
 
-    triangulation.execute_coarsening_and_refinement ();
+    (*triangulation).execute_coarsening_and_refinement ();
   }
   
   
@@ -268,14 +249,11 @@ namespace mandy
         pcout << "FunctionTools:: Cycle " << cycle << ':'
 	      << std::endl;
 
-	if (cycle==0)
-	  make_coarse_grid ();
-
-	else
+	if (cycle!=0)
 	  refine_grid ();
 	
 	pcout << "   Number of active cells:       "
-	      << triangulation.n_global_active_cells ()
+	      << (*triangulation).n_global_active_cells ()
 	      << std::endl;
 
 	setup_system ();

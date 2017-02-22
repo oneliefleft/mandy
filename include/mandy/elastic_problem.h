@@ -17,6 +17,8 @@
 #include <deal.II/lac/sparsity_tools.h>
 #include <deal.II/lac/vector.h>
 
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/tria_accessor.h>
@@ -40,8 +42,6 @@
 
 #include <mandy/elastic_tensor.h>
 #include <mandy/lattice_tensor.h>
-#include <mandy/matrix_creator.h>
-#include <mandy/vector_creator.h>
 
 #include <mandy/crystal_symmetry_group.h>
 
@@ -53,33 +53,42 @@
 
 namespace mandy
 {
-
   /**
-   * Solve the system Mx=b, where M is the mass matrix and b is a
-   * linear function.
+   * Solve the system Ax=b, where A is the vector-valued operator of
+   * the Laplace-type and b is a linear function.
    */
   template <int dim>
-  class FunctionTools
+  class ElasticProblem
   {
   public:
 
     /**
      * Class constructor.
      */
-    FunctionTools (dealii::parallel::distributed::Triangulation<dim> &triangulation,
-		   const std::string                                 &prm);
+    ElasticProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
+		    const std::string                                 &prm);
 
     /**
      * Class destructor.
      */
-    ~FunctionTools ();
+    ~ElasticProblem ();
 
     /**
      * Wrapper function, that controls the order of excecution.
      */
     void run ();
+
+    /**
+     * Get coefficients from the parameter file specified at run time.
+     */
+    void get_coefficients ();
     
   private:
+    
+    /**
+     * Make intial coarse grid.
+     */
+    void make_coarse_grid ();
 
     /**
      * Setup system matrices and vectors.
@@ -114,8 +123,7 @@ namespace mandy
     MPI_Comm mpi_communicator;
 
     /**
-     * A smart-pointer to a distributed grid on which computations are
-     * done.
+     * A distributed grid on which all computations are done.
      */
     const dealii::SmartPointer<dealii::parallel::distributed::Triangulation<dim> > triangulation;
 
@@ -129,18 +137,18 @@ namespace mandy
      * Scalar valued finite element primarily used for interpolating
      * material iudentification.
      */
-    dealii::FESystem<dim> fe;
-    
+    dealii::FESystem<dim> finite_element;
+
     /**
      * Index set of locally owned DoFs.
      */
     dealii::IndexSet locally_owned_dofs;
-    
+
     /**
      * Index set of locally relevant DoFs.
      */
     dealii::IndexSet locally_relevant_dofs;
-    
+
     /**
      * A list of (hanging node) constraints.
      */
@@ -176,6 +184,26 @@ namespace mandy
      */
     dealii::ParameterHandler parameters;
     
-  }; // FunctionTools
+    /**
+     * Tensor of elastic coefficients.
+     */
+    mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor;
+
+    /**
+     * Vector of elastic coefficients.
+     */
+    std::vector<double> elastic_coefficients;
+
+    /**
+     * Tensor of lattice coefficients.
+     */
+    mandy::Physics::LatticeTensor<mandy::CrystalSymmetryGroup::wurtzite> lattice_tensor;
+
+    /**
+     * Vector of lattice coefficients.
+     */
+    std::vector<double> lattice_coefficients;
+
+  }; // LinearElasticity
   
 } // namespace mandy
