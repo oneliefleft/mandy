@@ -14,8 +14,8 @@ namespace mandy
    */
   template <int dim>
   PiezoelectricProblem<dim>::PiezoelectricProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
-				       MPI_Comm                                          &mpi_communicator,
-				       const std::string                                 &prm)
+						   MPI_Comm                                          &mpi_communicator,
+						   const std::string                                 &prm)
     :
     mpi_comm (mpi_communicator),
     triangulation (&triangulation),
@@ -124,7 +124,6 @@ namespace mandy
     // Setup hanging node constraints.
     constraints.clear ();
     constraints.reinit (locally_relevant_dofs);
-
     dealii::DoFTools::make_hanging_node_constraints (dof_handler, constraints);
     dealii::DoFTools::make_zero_boundary_constraints (dof_handler, constraints);
     constraints.close ();
