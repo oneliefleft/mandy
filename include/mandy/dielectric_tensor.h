@@ -49,7 +49,7 @@ namespace mandy
     template <enum CrystalSymmetryGroup, typename ValueType = double>
       class DielectricTensor
       :
-      mandy::TensorBase<2,3,ValueType>
+      public mandy::TensorBase<2,3,ValueType>
       {
       public:
             
