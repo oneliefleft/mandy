@@ -19,8 +19,10 @@ namespace mandy
     :
     mpi_comm (mpi_communicator),
     triangulation (&triangulation),
-    dof_handler (triangulation),
-    finite_element (dealii::FE_Q<dim> (2), 1),
+    scalar_dof_handler (triangulation),
+    vector_dof_handler (triangulation),
+    finite_element (dealii::FE_Q<dim> (2), dim,
+		    dealii::FE_Q<dim> (2), 1),
     // finite_element (dealii::FE_Q<dim> (2), dim),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_comm) == 0)),
@@ -98,7 +100,8 @@ namespace mandy
   PiezoelectricProblem<dim>::~PiezoelectricProblem ()
   {
     // Wipe DoF handlers.
-    dof_handler.clear ();
+    scalar_dof_handler.clear ();
+    vector_dof_handler.clear ();
   }
   
 
@@ -111,9 +114,9 @@ namespace mandy
     dealii::TimerOutput::Scope time (timer, "setup system");
 
     // Determine locally relevant DoFs.
-    dof_handler.distribute_dofs (finite_element);
-    locally_owned_dofs = dof_handler.locally_owned_dofs ();
-    dealii::DoFTools::extract_locally_relevant_dofs (dof_handler, locally_relevant_dofs);
+    scalar_dof_handler.distribute_dofs (finite_element);
+    locally_owned_dofs = scalar_dof_handler.locally_owned_dofs ();
+    dealii::DoFTools::extract_locally_relevant_dofs (scalar_dof_handler, locally_relevant_dofs);
 
     // Initialise distributed vectors.
     locally_relevant_solution.reinit (locally_owned_dofs, locally_relevant_dofs,
@@ -124,16 +127,16 @@ namespace mandy
     // Setup hanging node constraints.
     constraints.clear ();
     constraints.reinit (locally_relevant_dofs);
-    dealii::DoFTools::make_hanging_node_constraints (dof_handler, constraints);
-    dealii::DoFTools::make_zero_boundary_constraints (dof_handler, constraints);
+    dealii::DoFTools::make_hanging_node_constraints (scalar_dof_handler, constraints);
+    dealii::DoFTools::make_zero_boundary_constraints (scalar_dof_handler, constraints);
     constraints.close ();
 
     // Finally, create a distributed sparsity pattern and initialise
     // the system matrix from that.
     dealii::DynamicSparsityPattern dsp (locally_relevant_dofs);
-    dealii::DoFTools::make_sparsity_pattern (dof_handler, dsp, constraints, false);
+    dealii::DoFTools::make_sparsity_pattern (scalar_dof_handler, dsp, constraints, false);
     dealii::SparsityTools::distribute_sparsity_pattern (dsp,
-							dof_handler.n_locally_owned_dofs_per_processor (),
+							scalar_dof_handler.n_locally_owned_dofs_per_processor (),
 							mpi_comm,
 							locally_relevant_dofs);
 
@@ -258,8 +261,8 @@ namespace mandy
 					  polarelectric_coefficients_inclusion.size ()));
     
     typename dealii::DoFHandler<dim>::active_cell_iterator
-      cell = dof_handler.begin_active (),
-      endc = dof_handler.end ();
+      cell = scalar_dof_handler.begin_active (),
+      endc = scalar_dof_handler.end ();
     
     for (; cell!=endc; ++cell)
       if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_comm))
@@ -271,11 +274,19 @@ namespace mandy
 	  // Extract vector-values from FEValues.
 	  const dealii::FEValuesExtractors::Vector u (0);
 
-	  // Obtain the material identification on this cell and
-	  // transfer it to a strain description.
+	  // Extract scalar-values from FEValues.
+	  const dealii::FEValuesExtractors::Scalar phi (dim);
+
+	  // Obtain the material identification using scalar-values on
+	  // this cell and transfer it to a strain description.
 	  material_function.value_list (fe_values.get_quadrature_points (),
 					material_function_values);
-  
+
+	  // Obtain the values of the displacements using
+	  // vector-values on this cell.
+	  //
+	  // -- ??
+	  
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
 
@@ -374,7 +385,7 @@ namespace mandy
     dealii::TimerOutput::Scope time (timer, "solve");
     
     dealii::PETScWrappers::MPI::Vector completely_distributed_solution (locally_owned_dofs, mpi_comm);
-    dealii::SolverControl solver_control (dof_handler.n_dofs (), 1e-06);
+    dealii::SolverControl solver_control (scalar_dof_handler.n_dofs (), 1e-06);
     dealii::PETScWrappers::SolverBicgstab solver (solver_control, mpi_comm);
     dealii::PETScWrappers::PreconditionBlockJacobi preconditioner (system_matrix);
     
@@ -400,7 +411,7 @@ namespace mandy
     dealii::TimerOutput::Scope time (timer, "output_results");
 
     dealii::DataOut<dim> data_out;
-    data_out.attach_dof_handler (dof_handler);
+    data_out.attach_dof_handler (scalar_dof_handler);
     data_out.add_data_vector (locally_relevant_solution, "displacement");
 
     dealii::Vector<float> subdomain ((*triangulation).n_active_cells ());
@@ -462,7 +473,7 @@ namespace mandy
 	setup_system ();
 	
 	pcout << "   Number of degrees of freedom: "
-	      << dof_handler.n_dofs ()
+	      << scalar_dof_handler.n_dofs ()
 	      << std::endl;
 	
 	assemble_system ();

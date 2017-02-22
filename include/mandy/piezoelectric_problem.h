@@ -141,6 +141,18 @@ namespace mandy
     dealii::DoFHandler<dim> dof_handler;
 
     /**
+     * Scalar DoF handler primarily used for interpolating material
+     * identification.
+     */
+    dealii::DoFHandler<dim> scalar_dof_handler;
+
+    /**
+     * Scalar DoF handler primarily used for interpolating material
+     * identification.
+     */
+    dealii::DoFHandler<dim> vector_dof_handler;
+
+    /**
      * Scalar valued finite element primarily used for interpolating
      * material iudentification.
      */
