@@ -488,7 +488,7 @@ namespace mandy
   void
   PiezoelectricProblem<dim>::run ()
   {
-    const unsigned int n_cycles = 1;
+    const unsigned int n_cycles = 2;
     
     for (unsigned int cycle=0; cycle<n_cycles; ++cycle)
       {
