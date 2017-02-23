@@ -109,7 +109,7 @@ namespace mandy
      * Solve the linear algebra system.
      */
     unsigned int solve ();
-    
+
     /**
      * Output results, ie., finite element functions and derived
      * quantitites for this cycle.

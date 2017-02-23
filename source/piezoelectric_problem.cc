@@ -348,7 +348,7 @@ namespace mandy
 		  
 		  // Local right hand side vector.
 		  cell_vector (i) +=
-		    (contract (v_i_grad, piezoelectric_tensor, strain_function_values) -
+		    (//contract (v_i_grad, piezoelectric_tensor, strain_function_values) -
 		     contract (v_i_grad, polarelectric_tensor))                        *
 		    scalar_fe_values.JxW (q_point);
 
@@ -396,6 +396,27 @@ namespace mandy
     return solver_control.last_step ();
   }
 
+  template <int dim>
+  void PiezoelectricProblem<dim>::refine_grid ()
+  {
+    dealii::TimerOutput::Scope time (timer, "refine grid");
+
+    dealii::Vector<float> estimated_error_per_cell ((*triangulation).n_active_cells());
+    
+    dealii::KellyErrorEstimator<dim>::estimate (dof_handler, dealii::QGauss<dim-1>(4),
+						typename dealii::FunctionMap<dim>::type (),
+						locally_relevant_solution,
+						estimated_error_per_cell);
+
+    dealii::parallel::distributed::GridRefinement::
+      refine_and_coarsen_fixed_number ((*triangulation),
+				       estimated_error_per_cell,
+				       0.250, 0.025);
+
+    (*triangulation).execute_coarsening_and_refinement ();
+  }
+
+  
 
   /**
    * Output results.
@@ -458,9 +479,11 @@ namespace mandy
     
     for (unsigned int cycle=0; cycle<n_cycles; ++cycle)
       {
-	
 	pcout << "PiezoelectricProblem:: Cycle " << cycle << ':'
 	      << std::endl;
+
+	if (cycle!=0)
+	  refine_grid ();
 	
 	pcout << "   Number of active cells:       "
 	      << (*triangulation).n_global_active_cells ()
