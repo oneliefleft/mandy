@@ -171,7 +171,7 @@ namespace mandy
 
     dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
-    data_out.add_data_vector (locally_relevant_solution, "material_id");
+    data_out.add_data_vector (locally_relevant_solution, "material");
 
     dealii::Vector<float> subdomain ((*triangulation).n_active_cells ());
     for (unsigned int i=0; i<subdomain.size(); ++i)
@@ -180,7 +180,7 @@ namespace mandy
 
     data_out.build_patches ();
     
-    const std::string filename = ("material_id-" +
+    const std::string filename = ("material-" +
                                   dealii::Utilities::int_to_string (cycle, 2) +
                                   "." +
                                   dealii::Utilities::int_to_string
@@ -196,12 +196,12 @@ namespace mandy
 	for (unsigned int i=0;
 	     i<dealii::Utilities::MPI::n_mpi_processes (mpi_communicator);
 	     ++i)
-	  filenames.push_back ("material_id-" +
+	  filenames.push_back ("material-" +
 			       dealii::Utilities::int_to_string (cycle, 2) +
 			       "." +
 			       dealii::Utilities::int_to_string (i, 4) +
 			       ".vtu");
-	std::ofstream master_output (("material_id-" +
+	std::ofstream master_output (("material-" +
 				      dealii::Utilities::int_to_string (cycle, 2) +
 				      ".pvtu").c_str ());
 
