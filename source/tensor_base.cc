@@ -70,6 +70,7 @@ namespace mandy
   
 } // namepsace mandy
 
+template class mandy::TensorBase<1, 3, double>;
 template class mandy::TensorBase<2, 3, double>;
 template class mandy::TensorBase<3, 3, double>;
 template class mandy::TensorBase<4, 3, double>;

@@ -105,6 +105,19 @@ namespace mandy
    *
    * @note This is a specialisation of deal.II's contract3 function.
    */
+  template <int rank, int dim, typename ValueType>
+  inline
+    ValueType contract (const dealii::Tensor<rank, dim, ValueType>    &src1,
+			const mandy::TensorBase<rank, dim, ValueType> &src2)
+  {
+    return dealii::contract (src1, *src2);
+  }
+  
+  /**
+   * Contract all indices in the set of tensors. 
+   *
+   * @note This is a specialisation of deal.II's contract3 function.
+   */
   template <int rank_1, int rank_2, int dim, typename ValueType>
   inline
     ValueType contract (const dealii::Tensor<rank_1, dim, ValueType>           &src1,
