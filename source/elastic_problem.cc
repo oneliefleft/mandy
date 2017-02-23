@@ -14,6 +14,7 @@ namespace mandy
    */
   template <int dim>
   ElasticProblem<dim>::ElasticProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
+				       dealii::PETScWrappers::MPI::Vector                &locally_relevant_solution,
 				       MPI_Comm                                          &mpi_communicator,
 				       const std::string                                 &prm)
     :
@@ -21,6 +22,7 @@ namespace mandy
     triangulation (&triangulation),
     dof_handler (triangulation),
     finite_element (dealii::FE_Q<dim> (2), dim),
+    locally_relevant_solution (&locally_relevant_solution),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_comm) == 0)),
     timer (mpi_comm, pcout,
@@ -84,7 +86,7 @@ namespace mandy
     dealii::DoFTools::extract_locally_relevant_dofs (dof_handler, locally_relevant_dofs);
 
     // Initialise distributed vectors.
-    locally_relevant_solution.reinit (locally_owned_dofs, locally_relevant_dofs,
+    (*locally_relevant_solution).reinit (locally_owned_dofs, locally_relevant_dofs,
 				      mpi_comm);
     system_rhs.reinit (locally_owned_dofs,
 		       mpi_comm);
@@ -275,7 +277,7 @@ namespace mandy
     
     // Ensure that all ghost elements are also copied as necessary.
     constraints.distribute (completely_distributed_solution);
-    locally_relevant_solution = completely_distributed_solution;
+    (*locally_relevant_solution) = completely_distributed_solution;
 
     // Return the number of iterations (last step) of the solve.
     return solver_control.last_step ();
@@ -293,7 +295,7 @@ namespace mandy
 
     dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler (dof_handler);
-    data_out.add_data_vector (locally_relevant_solution, "displacement");
+    data_out.add_data_vector ((*locally_relevant_solution), "displacement");
 
     dealii::Vector<float> subdomain ((*triangulation).n_active_cells ());
     for (unsigned int i=0; i<subdomain.size(); ++i)
@@ -366,7 +368,7 @@ namespace mandy
 	      << std::endl;
 	
 	pcout << "   Linfty-norm:                  "
-	      << locally_relevant_solution.linfty_norm ()
+	      << (*locally_relevant_solution).linfty_norm ()
 	      << std::endl;
 
 	if (dealii::Utilities::MPI::n_mpi_processes (mpi_comm) <= 32)

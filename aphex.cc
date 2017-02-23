@@ -150,15 +150,15 @@ namespace aphex
 
 	{
 	  dealii::TimerOutput::Scope time (timer, "elastic problem");
-	  mandy::ElasticProblem<3> elastic_problem (triangulation, mpi_communicator,
-						    "elastic.prm");
+	  mandy::ElasticProblem<3> elastic_problem (triangulation, displacement,
+						    mpi_communicator, "elastic.prm");
 	  elastic_problem.run ();
 	}
 
 	{
 	  dealii::TimerOutput::Scope time (timer, "piezoelectric problem");
-	  mandy::PiezoelectricProblem<3> piezoelectric_problem (triangulation, mpi_communicator,
-								"piezoelectric.prm");
+	  mandy::PiezoelectricProblem<3> piezoelectric_problem (triangulation, displacement,
+								mpi_communicator, "piezoelectric.prm");
 	  piezoelectric_problem.run ();
 	}
 

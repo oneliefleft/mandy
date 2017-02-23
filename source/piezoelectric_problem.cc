@@ -14,6 +14,7 @@ namespace mandy
    */
   template <int dim>
   PiezoelectricProblem<dim>::PiezoelectricProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
+						   dealii::PETScWrappers::MPI::Vector                &locally_relevant_displacement,
 						   MPI_Comm                                          &mpi_communicator,
 						   const std::string                                 &prm)
     :
@@ -23,6 +24,7 @@ namespace mandy
     vector_dof_handler (triangulation),
     scalar_finite_element (dealii::FE_Q<dim> (2), 1),
     vector_finite_element (dealii::FE_Q<dim> (2), 1),
+    locally_relevant_displacement (&locally_relevant_displacement),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_comm) == 0)),
     timer (mpi_comm, pcout,
@@ -112,6 +114,10 @@ namespace mandy
   {
     dealii::TimerOutput::Scope time (timer, "setup system");
 
+    // Under no conditions should the displacement vector be all zero.
+    AssertThrow (!(*locally_relevant_displacement).all_zero (),
+		 dealii::ExcMessage ("Displacement vector can not be all zero!"));
+    
     // Determine locally relevant DoFs.
     scalar_dof_handler.distribute_dofs (scalar_finite_element);
     vector_dof_handler.distribute_dofs (vector_finite_element);

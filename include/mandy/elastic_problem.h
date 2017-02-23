@@ -69,6 +69,7 @@ namespace mandy
      * Class constructor.
      */
     ElasticProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
+		    dealii::PETScWrappers::MPI::Vector                &locally_relevant_solution,
 		    MPI_Comm                                          &mpi_communicator,
 		    const std::string                                 &prm);
 
@@ -166,7 +167,7 @@ namespace mandy
     /**
      * Locally relevant solution vector.
      */
-    dealii::PETScWrappers::MPI::Vector locally_relevant_solution;
+    const dealii::SmartPointer<dealii::PETScWrappers::MPI::Vector> locally_relevant_solution;
 
     /**
      * System right hand side function - interpolated function.

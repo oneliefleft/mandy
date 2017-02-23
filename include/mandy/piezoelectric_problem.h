@@ -72,6 +72,7 @@ namespace mandy
      * Class constructor.
      */
     PiezoelectricProblem (dealii::parallel::distributed::Triangulation<dim> &triangulation,
+			  dealii::PETScWrappers::MPI::Vector                &locally_relevant_displacement,
 			  MPI_Comm                                          &mpi_communicator,
 			  const std::string                                 &prm);
 
@@ -190,7 +191,7 @@ namespace mandy
     /**
      * Locally relevant displacement vector.
      */
-    dealii::PETScWrappers::MPI::Vector locally_relevant_displacement;
+    const dealii::SmartPointer<dealii::PETScWrappers::MPI::Vector> locally_relevant_displacement;
     
     /**
      * System right hand side function - interpolated function.
