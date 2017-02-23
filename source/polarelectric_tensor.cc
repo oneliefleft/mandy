@@ -50,7 +50,7 @@ namespace mandy
       this->tensor = 0;
 
       // P_33 \mapsto
-      this->tensor[2][2] = this->coefficients_[1];
+      this->tensor[2] = this->coefficients_[1];
     }
     
   } // namespace Physics
