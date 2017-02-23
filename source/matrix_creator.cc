@@ -35,7 +35,66 @@ namespace mandy
 
   namespace MatrixCreator
   {
+
+    template<int dim, int spacedim = dim, typename ValueType = double>
+    void
+    create_mass_matrix (const dealii::FiniteElement<dim,spacedim> &finite_element,
+			const dealii::DoFHandler<dim,spacedim>    &dof_handler,
+			const dealii::Quadrature<dim>             &quadrature,
+			dealii::PETScWrappers::MPI::SparseMatrix  &matrix,
+			dealii::ConstraintMatrix                  &constraints,
+			MPI_Comm                                  &mpi_communicator)
+    {
+      dealii::FEValues<dim> fe_values (finite_element, quadrature,
+				       dealii::update_values            |
+				       dealii::update_quadrature_points |
+				       dealii::update_JxW_values);
+      
+      const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
+      const unsigned int n_q_points    = quadrature.size ();
+      
+      dealii::FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell); 
+      std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
+      
+      typename dealii::DoFHandler<dim>::active_cell_iterator
+	cell = dof_handler.begin_active (),
+	endc = dof_handler.end ();
+      
+      for (; cell!=endc; ++cell)
+	if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_communicator))
+	  {
+	    cell_matrix = 0;
+	    fe_values.reinit (cell);
+	    
+	    for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
+	      for (unsigned int j=0; j<dofs_per_cell; ++j)
+		for (unsigned int i=0; i<dofs_per_cell; ++i)
+		  {
+		    // Local stiffness (mass) matrix.
+		    cell_matrix (i,j) +=
+		      fe_values.shape_value (i,q_point) *
+		      fe_values.shape_value (j,q_point) *
+		      fe_values.JxW (q_point);
+		  }
+	    
+	    cell->get_dof_indices (local_dof_indices);
+	    
+	    constraints.distribute_local_to_global (cell_matrix,
+						    local_dof_indices,
+						    matrix);
+	  } // cell!=endc
+      
+      matrix.compress (dealii::VectorOperation::add);
+    }
     
   } // namepsace MatrixCreator
   
 } // namepsace mandy
+
+template void
+mandy::MatrixCreator::create_mass_matrix<3, 3, double> (const dealii::FiniteElement<3,3>         &,
+							const dealii::DoFHandler<3,3>            &,
+							const dealii::Quadrature<3>              &,
+							dealii::PETScWrappers::MPI::SparseMatrix &,
+							dealii::ConstraintMatrix                 &,
+							MPI_Comm                                 &);
