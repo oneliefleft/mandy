@@ -141,11 +141,11 @@ namespace aphex
 	
 	dealii::GridGenerator::hyper_cube (triangulation, -10, 10);
 	// triangulation.refine_global (parameters.get_integer ("Global mesh refinement steps"));
-	triangulation.refine_global (3);
+	triangulation.refine_global (2);
 
 	{
-	  // mandy::FunctionTools<3> material (triangulation, "material.prm");
-	  // material.run ();
+	  mandy::FunctionTools<3> material (triangulation, "material.prm");
+	  material.run ();
 	}
 
 	{

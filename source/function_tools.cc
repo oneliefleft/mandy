@@ -242,7 +242,7 @@ namespace mandy
   void
   FunctionTools<dim>::run ()
   {
-    const unsigned int n_cycles = 5;
+    const unsigned int n_cycles = 2;
     
     for (unsigned int cycle=0; cycle<n_cycles; ++cycle)
       {

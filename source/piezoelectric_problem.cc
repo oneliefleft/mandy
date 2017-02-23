@@ -114,6 +114,8 @@ namespace mandy
 
     // Determine locally relevant DoFs.
     scalar_dof_handler.distribute_dofs (scalar_finite_element);
+    vector_dof_handler.distribute_dofs (vector_finite_element);
+    
     locally_owned_dofs = scalar_dof_handler.locally_owned_dofs ();
     dealii::DoFTools::extract_locally_relevant_dofs (scalar_dof_handler, locally_relevant_dofs);
 
@@ -270,17 +272,18 @@ namespace mandy
 					  polarelectric_coefficients_inclusion.size ()));
     
     typename dealii::DoFHandler<dim>::active_cell_iterator
-      cell = scalar_dof_handler.begin_active (),
-      endc = scalar_dof_handler.end ();
+      scalar_cell = scalar_dof_handler.begin_active (),
+      vector_cell = vector_dof_handler.begin_active (),
+      scalar_endc = scalar_dof_handler.end ();
     
-    for (; cell!=endc; ++cell)
-      if (cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_comm))
+    for (; scalar_cell!=scalar_endc; ++scalar_cell, ++vector_cell)
+      if (scalar_cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_comm))
 	{
 	  cell_matrix = 0;
 	  cell_vector = 0;
 
-	  scalar_fe_values.reinit (cell);
-	  vector_fe_values.reinit (cell);
+	  scalar_fe_values.reinit (scalar_cell);
+	  vector_fe_values.reinit (vector_cell);
 
 	  // Extract scalar- and vector-values from FEValues.
 	  const dealii::FEValuesExtractors::Scalar phi (0);
@@ -293,7 +296,7 @@ namespace mandy
 
 	  // Obtain the values of the displacements using
 	  // vector-values on this cell.
-	  vector_fe_values[u].get_function_values (locally_relevant_displacement, displacement_function_values);
+	  // vector_fe_values[u].get_function_values (locally_relevant_displacement, displacement_function_values);
 	  
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
@@ -369,7 +372,7 @@ namespace mandy
 
 	    } // q_point
 	  
-	  cell->get_dof_indices (local_dof_indices);
+	  scalar_cell->get_dof_indices (local_dof_indices);
 	  
 	  constraints.distribute_local_to_global (cell_matrix, cell_vector,
 						  local_dof_indices,
