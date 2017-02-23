@@ -47,16 +47,6 @@ namespace mandy
 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 3, ","),
 				"Size of the lattice of an inclusion");
       
-      // parameters.declare_entry ("Elastic background",
-      // 				"0, 0, 0, 0, 0",
-      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
-      // 				"Elastic coefficients of the background");
-      
-      // parameters.declare_entry ("Elastic inclusion",
-      // 				"0, 0, 0, 0, 0",
-      // 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 5, ","),
-      // 				"Elastic coefficients of an inclusion");
-
       parameters.declare_entry ("Dielectric background",
 				"0, 0",
 				dealii::Patterns::List (dealii::Patterns::Anything (), 1, 2, ","),
@@ -207,10 +197,6 @@ namespace mandy
     std::vector<double> lattice_coefficients_background;
     std::vector<double> lattice_coefficients_inclusion;
 
-    // Elastic coefficients from input file.
-    // std::vector<double> elastic_coefficients_background;
-    // std::vector<double> elastic_coefficients_inclusion;
-
     // Dielectric coefficients from input file.
     std::vector<double> dielectric_coefficients_background;
     std::vector<double> dielectric_coefficients_inclusion;
@@ -231,12 +217,6 @@ namespace mandy
 
       lattice_coefficients_inclusion = dealii::Utilities::string_to_double
 	(dealii::Utilities::split_string_list (parameters.get ("Lattice inclusion"), ','));
-
-      // elastic_coefficients_background = dealii::Utilities::string_to_double
-      // 	(dealii::Utilities::split_string_list (parameters.get ("Elastic background"), ','));
-
-      // elastic_coefficients_inclusion = dealii::Utilities::string_to_double
-      // 	(dealii::Utilities::split_string_list (parameters.get ("Elastic inclusion"), ','));
 
       dielectric_coefficients_background = dealii::Utilities::string_to_double
 	(dealii::Utilities::split_string_list (parameters.get ("Dielectric background"), ','));
@@ -261,10 +241,6 @@ namespace mandy
     Assert (lattice_coefficients_background.size ()==lattice_coefficients_inclusion.size (),
 	    dealii::ExcDimensionMismatch (lattice_coefficients_background.size (),
 					  lattice_coefficients_inclusion.size ()));
-    
-    // Assert (elastic_coefficients_background.size ()==elastic_coefficients_inclusion.size (),
-    // 	    dealii::ExcDimensionMismatch (elastic_coefficients_background.size (),
-    // 					  elastic_coefficients_inclusion.size ()));
 
     Assert (dielectric_coefficients_background.size ()==dielectric_coefficients_inclusion.size (),
 	    dealii::ExcDimensionMismatch (dielectric_coefficients_background.size (),
@@ -317,16 +293,6 @@ namespace mandy
 						(lattice_coefficients_inclusion[i]/lattice_coefficients_background[i]) - 1.);
 	      lattice_tensor.set_coefficients (lattice_coefficients);
 	      lattice_tensor.distribute_coefficients ();
-
-	      // Build the elastic tensor.
-	      // elastic_coefficients.clear ();
-
-	      // for (unsigned int i=0; i<elastic_coefficients_inclusion.size (); ++i)
-	      // 	elastic_coefficients.push_back (material_function_values[q_point]*elastic_coefficients_inclusion[i] +
-	      // 					(1.-material_function_values[q_point])*elastic_coefficients_background[i]);
-
-	      // elastic_tensor.set_coefficients (elastic_coefficients);
-	      // elastic_tensor.distribute_coefficients ();
 
 	      // Build the dielectric tensor.
 	      dielectric_coefficients.clear ();

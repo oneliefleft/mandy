@@ -214,16 +214,6 @@ namespace mandy
     dealii::ParameterHandler parameters;
     
     /**
-     * Tensor of elastic coefficients.
-     */
-    /* mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor; */
-
-    /**
-     * Vector of elastic coefficients.
-     */
-    /* std::vector<double> elastic_coefficients; */
-
-    /**
      * Tensor of dielectric coefficients.
      */
     mandy::Physics::DielectricTensor<mandy::CrystalSymmetryGroup::wurtzite> dielectric_tensor;
