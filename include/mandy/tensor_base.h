@@ -105,11 +105,11 @@ namespace mandy
    *
    * @note This is a specialisation of deal.II's contract3 function.
    */
-  template <int dim, typename ValueType>
+  template <int rank_1, int rank_2, int dim, typename ValueType>
   inline
-    ValueType contract (const dealii::Tensor<2, dim, ValueType>    &src1,
-			const mandy::TensorBase<4, dim, ValueType> &src2,
-			const dealii::Tensor<2, dim, ValueType>    &src3)
+    ValueType contract (const dealii::Tensor<rank_1, dim, ValueType>           &src1,
+			const mandy::TensorBase<rank_1+rank_2, dim, ValueType> &src2,
+			const dealii::Tensor<rank_2, dim, ValueType>           &src3)
   {
     return dealii::contract3 (src1, *src2, src3);
   }
@@ -119,11 +119,11 @@ namespace mandy
    *
    * @note This is a specialisation of deal.II's contract3 function.
    */
-  template <int dim, typename ValueType>
+  template <int rank_1, int rank_2, int dim, typename ValueType>
   inline
-    ValueType contract (const dealii::Tensor<2, dim, ValueType>    &src1,
-			const mandy::TensorBase<4, dim, ValueType> &src2,
-			const mandy::TensorBase<2, dim, ValueType> &src3)
+    ValueType contract (const dealii::Tensor<rank_1, dim, ValueType>           &src1,
+			const mandy::TensorBase<rank_1+rank_2, dim, ValueType> &src2,
+			const mandy::TensorBase<rank_2, dim, ValueType>        &src3)
   {
     return dealii::contract3 (src1, *src2, *src3);
   }
