@@ -23,7 +23,7 @@ namespace mandy
     scalar_dof_handler (triangulation),
     vector_dof_handler (triangulation),
     scalar_finite_element (dealii::FE_Q<dim> (2), 1),
-    vector_finite_element (dealii::FE_Q<dim> (2), 1),
+    vector_finite_element (dealii::FE_Q<dim> (2), dim),
     locally_relevant_displacement (&locally_relevant_displacement),
     // ---
     pcout (std::cout, (dealii::Utilities::MPI::this_mpi_process (mpi_comm) == 0)),
@@ -196,12 +196,13 @@ namespace mandy
     }
     parameters.leave_subsection ();
 
+    // Displacement function values.
+    std::vector<dealii::Tensor<2, dim> > displacement_function_values (n_q_points, dealii::Tensor<2, dim> ());
+    
     // Material function values.
     std::vector<double> material_function_values (n_q_points);
+    dealii::Tensor<2, dim> strain_function_values;   
 
-    // Displacement function values.
-    std::vector<dealii::Tensor<1, dim> > displacement_function_values (n_q_points, dealii::Tensor<1, dim> ());
-    
     // Lattice coefficients from file.
     std::vector<double> lattice_coefficients_background;
     std::vector<double> lattice_coefficients_inclusion;
@@ -292,7 +293,7 @@ namespace mandy
 	  vector_fe_values.reinit (vector_cell);
 
 	  // Extract scalar- and vector-values from FEValues.
-	  const dealii::FEValuesExtractors::Scalar phi (0);
+	  const dealii::FEValuesExtractors::Scalar v (0);
 	  const dealii::FEValuesExtractors::Vector u (0);
 
 	  // Obtain the material identification using scalar-values on
@@ -302,7 +303,8 @@ namespace mandy
 
 	  // Obtain the values of the displacements using
 	  // vector-values on this cell.
-	  // vector_fe_values[u].get_function_values (locally_relevant_displacement, displacement_function_values);
+	  vector_fe_values[u].get_function_gradients ((*locally_relevant_displacement),
+						      displacement_function_values);
 	  
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
@@ -358,21 +360,34 @@ namespace mandy
 	      
 	      for (unsigned int i=0; i<dofs_per_cell; ++i)
 		{
+		  const dealii::Tensor<1, dim> v_i_grad = scalar_fe_values[v].gradient (i, q_point);
 		  
 		  for (unsigned int j=0; j<dofs_per_cell; ++j)
 		    {
+		      const dealii::Tensor<1, dim> v_j_grad = scalar_fe_values[v].gradient (j, q_point);
 		      
 		      // Local stiffness matrix.
-		      // cell_matrix (i,j) +=
-		      // 	contract (u_i_grad, elastic_tensor, u_j_grad) *
-		      // 	fe_values.JxW (q_point);
+		      cell_matrix (i,j) +=
+		       	contract (v_i_grad, dielectric_tensor, v_j_grad) *
+		       	scalar_fe_values.JxW (q_point);
 		      
 		    } 
+
+		  strain_function_values.clear ();
+		  
+		  for (unsigned int a=0; a<dim; ++a)
+		    for (unsigned int b=0; b<dim; ++b)
+		      strain_function_values[a][b] =
+			0.5*(displacement_function_values[q_point][a][b]+displacement_function_values[q_point][a][b]);
 		  
 		  // Local right hand side vector.
-		  // cell_vector (i) +=
-		  //   contract (phi, piezoelectric_tensor, displacement_function_values) *
-		  //   fe_values.JxW (q_point);
+		  cell_vector (i) +=
+		    (contract (v_i_grad, piezoelectric_tensor, strain_function_values) -
+		     contract (v_i_grad, polarelectric_tensor))                        *
+		    scalar_fe_values.JxW (q_point);
+
+		  // pcout << contract (v_i_grad, piezoelectric_tensor, strain_function_values) << " ";
+		  // pcout << contract (v_i_grad, polarelectric_tensor) << " " ;
 		  
 		}
 
@@ -427,7 +442,7 @@ namespace mandy
 
     dealii::DataOut<dim> data_out;
     data_out.attach_dof_handler (scalar_dof_handler);
-    data_out.add_data_vector (locally_relevant_solution, "displacement");
+    data_out.add_data_vector (locally_relevant_solution, "potential");
 
     dealii::Vector<float> subdomain ((*triangulation).n_active_cells ());
     for (unsigned int i=0; i<subdomain.size(); ++i)
@@ -436,7 +451,7 @@ namespace mandy
 
     data_out.build_patches ();
     
-    const std::string filename = ("displacement-" +
+    const std::string filename = ("potential-" +
                                   dealii::Utilities::int_to_string (cycle, 2) +
                                   "." +
                                   dealii::Utilities::int_to_string
@@ -452,12 +467,12 @@ namespace mandy
 	for (unsigned int i=0;
 	     i<dealii::Utilities::MPI::n_mpi_processes (mpi_comm);
 	     ++i)
-	  filenames.push_back ("displacement-" +
+	  filenames.push_back ("potential-" +
 			       dealii::Utilities::int_to_string (cycle, 2) +
 			       "." +
 			       dealii::Utilities::int_to_string (i, 4) +
 			       ".vtu");
-	std::ofstream master_output (("displacement-" +
+	std::ofstream master_output (("potential-" +
 				      dealii::Utilities::int_to_string (cycle, 2) +
 				      ".pvtu").c_str ());
 
@@ -493,18 +508,18 @@ namespace mandy
 	
 	assemble_system ();
 	
-	// const unsigned int n_iterations = solve ();
+	const unsigned int n_iterations = solve ();
 	
-	// pcout << "   Solved in " << n_iterations
-	//       << " iterations."
-	//       << std::endl;
+	pcout << "   Solved in " << n_iterations
+	      << " iterations."
+	      << std::endl;
 	
-	// pcout << "   Linfty-norm:                  "
-	//       << locally_relevant_solution.linfty_norm ()
-	//       << std::endl;
-
-	// if (dealii::Utilities::MPI::n_mpi_processes (mpi_comm) <= 32)
-	//   output_results (cycle);
+	pcout << "   Linfty-norm:                  "
+	      << locally_relevant_solution.linfty_norm ()
+	       << std::endl;
+	
+	if (dealii::Utilities::MPI::n_mpi_processes (mpi_comm) <= 32)
+	  output_results (cycle);
       }
   }
   
