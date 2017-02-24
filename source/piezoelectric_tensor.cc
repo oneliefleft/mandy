@@ -70,8 +70,8 @@ namespace mandy
       this->tensor = 0;
       
       // C_15 \mapsto
-      this->tensor[0][0][2] = this->coefficients_[0];
-      this->tensor[0][2][0] = this->coefficients_[0];
+      this->tensor[0][1][2] = this->coefficients_[0];
+      this->tensor[0][2][1] = this->coefficients_[0];
 
       // C_31 \mapsto
       this->tensor[2][0][0] = this->coefficients_[1];
