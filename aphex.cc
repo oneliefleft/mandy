@@ -137,13 +137,13 @@ namespace aphex
 
     try
       {
-	dealii::TimerOutput::Scope time (timer, "aphex");
-	
+
 	dealii::GridGenerator::hyper_cube (triangulation, -10, 10);
 	// triangulation.refine_global (parameters.get_integer ("Global mesh refinement steps"));
 	triangulation.refine_global (2);
 
 	{
+	  dealii::TimerOutput::Scope time (timer, "material");
 	  mandy::FunctionTools<3> material (triangulation, "material.prm");
 	  material.run ();
 	}
