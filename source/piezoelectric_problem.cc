@@ -258,7 +258,7 @@ namespace mandy
       scalar_cell = scalar_dof_handler.begin_active (),
       vector_cell = vector_dof_handler.begin_active (),
       scalar_endc = scalar_dof_handler.end ();
-    
+
     for (; scalar_cell!=scalar_endc; ++scalar_cell, ++vector_cell)
       if (scalar_cell->subdomain_id () == dealii::Utilities::MPI::this_mpi_process (mpi_comm))
 	{
@@ -280,7 +280,7 @@ namespace mandy
 	  // Obtain the values of the displacements using
 	  // vector-values on this cell.
 	  vector_fe_values[u].get_function_gradients ((*locally_relevant_displacement),
-						      displacement_function_values);
+	   					      displacement_function_values);
 	  
 	  for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
 	    {
@@ -348,15 +348,10 @@ namespace mandy
 		  
 		  // Local right hand side vector.
 		  cell_vector (i) +=
-		    (//contract (v_i_grad, piezoelectric_tensor, strain_function_values) -
+		    (contract (v_i_grad, piezoelectric_tensor, strain_function_values) +
 		     contract (v_i_grad, polarelectric_tensor))                        *
 		    scalar_fe_values.JxW (q_point);
-
-		  // pcout << contract (v_i_grad, piezoelectric_tensor, strain_function_values) << " ";
-		  // pcout << contract (v_i_grad, polarelectric_tensor) << " " ;
-		  
 		}
-
 	    } // q_point
 	  
 	  scalar_cell->get_dof_indices (local_dof_indices);
@@ -401,19 +396,38 @@ namespace mandy
   {
     dealii::TimerOutput::Scope time (timer, "refine grid");
 
-    dealii::Vector<float> estimated_error_per_cell ((*triangulation).n_active_cells());
+    // Prepare a solution transfer for vector-valued displacements.
+    dealii::parallel::distributed::
+      SolutionTransfer<dim, dealii::PETScWrappers::MPI::Vector> solution_transfer (vector_dof_handler);
     
-    dealii::KellyErrorEstimator<dim>::estimate (dof_handler, dealii::QGauss<dim-1>(4),
+    dealii::Vector<float> estimated_error_per_cell ((*triangulation).n_active_cells ());
+
+    dealii::KellyErrorEstimator<dim>::estimate (scalar_dof_handler, dealii::QGauss<dim-1>(4),
 						typename dealii::FunctionMap<dim>::type (),
 						locally_relevant_solution,
 						estimated_error_per_cell);
-
+    
     dealii::parallel::distributed::GridRefinement::
-      refine_and_coarsen_fixed_number ((*triangulation),
-				       estimated_error_per_cell,
+      refine_and_coarsen_fixed_number ((*triangulation), estimated_error_per_cell,
 				       0.250, 0.025);
 
+    // Prepare grid and solution for coarsening and refinement.
+    (*triangulation).prepare_coarsening_and_refinement ();
+    solution_transfer.prepare_for_coarsening_and_refinement (*(locally_relevant_displacement));
+
+    // Excecute coarsening and refinement on the grid.
     (*triangulation).execute_coarsening_and_refinement ();
+    
+    // Interpolate the displacement vector by redistributing
+    // vector-valued degrees of freedom and actually interpolating the
+    // displacement solution.
+    vector_dof_handler.distribute_dofs (vector_finite_element);
+    locally_owned_dofs = vector_dof_handler.locally_owned_dofs ();
+
+    dealii::PETScWrappers::MPI::Vector interpolated_displacement (locally_owned_dofs, mpi_comm);
+    solution_transfer.interpolate (interpolated_displacement);
+
+    (*locally_relevant_displacement) = interpolated_displacement;
   }
 
   
@@ -481,7 +495,7 @@ namespace mandy
       {
 	pcout << "PiezoelectricProblem:: Cycle " << cycle << ':'
 	      << std::endl;
-
+	
 	if (cycle!=0)
 	  refine_grid ();
 	
@@ -493,6 +507,8 @@ namespace mandy
 	
 	pcout << "   Number of degrees of freedom: "
 	      << scalar_dof_handler.n_dofs ()
+	      << " + "
+	      << vector_dof_handler.n_dofs ()
 	      << std::endl;
 	
 	assemble_system ();

@@ -39,6 +39,7 @@
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/distributed/solution_transfer.h>
 
 #include <mandy/dielectric_tensor.h>
 #include <mandy/elastic_tensor.h>
@@ -134,12 +135,6 @@ namespace mandy
      * A distributed grid on which all computations are done.
      */
     const dealii::SmartPointer<dealii::parallel::distributed::Triangulation<dim> > triangulation;
-
-    /**
-     * Scalar DoF handler primarily used for interpolating material
-     * identification.
-     */
-    dealii::DoFHandler<dim> dof_handler;
 
     /**
      * Scalar DoF handler primarily used for interpolating material
