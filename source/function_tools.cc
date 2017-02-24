@@ -229,7 +229,7 @@ namespace mandy
     dealii::parallel::distributed::GridRefinement::
       refine_and_coarsen_fixed_number ((*triangulation),
 				       estimated_error_per_cell,
-				       0.250, 0.025);
+				       0.250, 0.000);
 
     (*triangulation).execute_coarsening_and_refinement ();
   }
