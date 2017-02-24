@@ -110,7 +110,7 @@ namespace mandy
     ValueType contract (const dealii::Tensor<rank, dim, ValueType>    &src1,
 			const mandy::TensorBase<rank, dim, ValueType> &src2)
   {
-    return dealii::contract (src1, *src2);
+    return dealii::scalar_product (src1, *src2);
   }
   
   /**
