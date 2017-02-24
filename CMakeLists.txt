@@ -27,7 +27,7 @@ ENDIF ()
 
 DEAL_II_INITIALIZE_CACHED_VARIABLES ()
 
-PROJECT (mandy CXX C)
+PROJECT (mandy-${MANDY_VERSION_MAJOR} CXX C)
 
 SET (MANDY_VERSION_MAJOR 0)
 SET (MANDY_VERSION_MINOR 1)
@@ -59,7 +59,7 @@ ADD_LIBRARY(mandy
   )
 
 DEAL_II_SETUP_TARGET (mandy)
-INCLUDE_DIRECTORIES(include
+INCLUDE_DIRECTORIES (include
   ${CMAKE_SOURCE_DIR}/mandy/include
   )
 
@@ -74,6 +74,14 @@ ADD_CUSTOM_TARGET (release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
   COMMENT "Switch CMAKE_BUILD_TYPE to Release"
+  )
+
+# Define a distclean target to remove every generated file:
+ADD_CUSTOM_TARGET(distclean
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
+  COMMAND ${CMAKE_COMMAND} -E remove_directory CMakeFiles
+  COMMAND ${CMAKE_COMMAND} -E remove CMakeCache.txt cmake_install.cmake Makefile
+  COMMENT "Run distclean"
   )
 
 ADD_EXECUTABLE (${TARGET} ${TARGET}.cc)
