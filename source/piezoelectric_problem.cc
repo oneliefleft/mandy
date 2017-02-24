@@ -422,11 +422,10 @@ namespace mandy
     // vector-valued degrees of freedom and actually interpolating the
     // displacement solution.
     vector_dof_handler.distribute_dofs (vector_finite_element);
-    locally_owned_dofs = vector_dof_handler.locally_owned_dofs ();
 
-    dealii::PETScWrappers::MPI::Vector interpolated_displacement (locally_owned_dofs, mpi_comm);
+    dealii::PETScWrappers::MPI::Vector interpolated_displacement (vector_dof_handler.locally_owned_dofs (),
+								  mpi_comm);
     solution_transfer.interpolate (interpolated_displacement);
-
     (*locally_relevant_displacement) = interpolated_displacement;
   }
 
@@ -481,23 +480,19 @@ namespace mandy
       }
   }
   
-
-  /**
-   * Run the application in the order specified.
-   */
   template <int dim>
   void
   PiezoelectricProblem<dim>::run ()
   {
-    const unsigned int n_cycles = 2;
+    const unsigned int n_cycles = 1;
     
     for (unsigned int cycle=0; cycle<n_cycles; ++cycle)
       {
 	pcout << "PiezoelectricProblem:: Cycle " << cycle << ':'
 	      << std::endl;
 	
-	if (cycle!=0)
-	  refine_grid ();
+	// if (cycle!=0)
+	//   refine_grid ();
 	
 	pcout << "   Number of active cells:       "
 	      << (*triangulation).n_global_active_cells ()
