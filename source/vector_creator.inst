@@ -1,0 +1,8 @@
+template void
+mandy::VectorCreator::create_right_hand_side_vector<3, 3, double>  (const dealii::FiniteElement<3,3>   &,
+								    const dealii::DoFHandler<3,3>      &,
+								    const dealii::Quadrature<3>        &,
+								    dealii::PETScWrappers::MPI::Vector &,
+								    const dealii::ConstraintMatrix     &,
+								    const dealii::FunctionParser<3>    &,
+								    const MPI_Comm                     &);

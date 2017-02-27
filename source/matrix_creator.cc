@@ -36,7 +36,7 @@ namespace mandy
   namespace MatrixCreator
   {
 
-    template<int dim, int spacedim = dim, typename ValueType = double>
+    template<int dim, int spacedim = dim, typename Value = double>
     void
     create_mass_matrix (const dealii::FiniteElement<dim,spacedim> &finite_element,
 			const dealii::DoFHandler<dim,spacedim>    &dof_handler,
@@ -53,7 +53,7 @@ namespace mandy
       const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
       const unsigned int n_q_points    = quadrature.size ();
       
-      dealii::FullMatrix<double> cell_matrix (dofs_per_cell, dofs_per_cell); 
+      dealii::FullMatrix<Value> cell_matrix (dofs_per_cell, dofs_per_cell); 
       std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
       
       typename dealii::DoFHandler<dim>::active_cell_iterator
@@ -91,10 +91,4 @@ namespace mandy
   
 } // namepsace mandy
 
-template void
-mandy::MatrixCreator::create_mass_matrix<3, 3, double> (const dealii::FiniteElement<3,3>         &,
-							const dealii::DoFHandler<3,3>            &,
-							const dealii::Quadrature<3>              &,
-							dealii::PETScWrappers::MPI::SparseMatrix &,
-							dealii::ConstraintMatrix                 &,
-							MPI_Comm                                 &);
+#include "matrix_creator.inst"

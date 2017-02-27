@@ -42,10 +42,10 @@ namespace mandy
   /**
    * A base class that describes the tensors of coefficients.
    */ 
-  template <int rank, int dim, typename ValueType = double>
+  template <int rank, int dim, typename Value = double>
     class TensorBase
     :
-    public dealii::Tensor<rank, dim, ValueType>
+    public dealii::Tensor<rank, dim, Value>
     {
     public:
     
@@ -54,7 +54,7 @@ namespace mandy
      */
     TensorBase ()
     :
-    tensor (dealii::Tensor<rank, dim, ValueType> ())
+    tensor (dealii::Tensor<rank, dim, Value> ())
     {};
 
     /**
@@ -65,12 +65,12 @@ namespace mandy
     /**
      *
      */
-    virtual bool is_symmetric (const ValueType tolerance);
+    virtual bool is_symmetric (const Value tolerance);
     
     /**
      * Set @p coefficients.
      */
-    void set_coefficients (std::vector<ValueType> &coefficients);
+    void set_coefficients (std::vector<Value> &coefficients);
 
     /**
      * Print to screen.
@@ -81,7 +81,7 @@ namespace mandy
      * Read only access to the underlying data type.
      */
     inline
-    dealii::Tensor<rank, dim, ValueType> operator* () const
+    dealii::Tensor<rank, dim, Value> operator* () const
     {
       return this->tensor;
     }
@@ -91,12 +91,12 @@ namespace mandy
     /**
      * The underlying data type that describes an elastic tensor.
      */
-    dealii::Tensor<rank, dim, ValueType> tensor;
+    dealii::Tensor<rank, dim, Value> tensor;
     
     /**
      * A vector of coefficients.
      */
-    std::vector<ValueType> coefficients_;
+    std::vector<Value> coefficients_;
     
     }; // TensorBase
 
@@ -105,10 +105,10 @@ namespace mandy
    *
    * @note This is a specialisation of deal.II's contract3 function.
    */
-  template <int rank, int dim, typename ValueType>
+  template <int rank, int dim, typename Value>
   inline
-    ValueType contract (const dealii::Tensor<rank, dim, ValueType>    &src1,
-			const mandy::TensorBase<rank, dim, ValueType> &src2)
+    Value contract (const dealii::Tensor<rank, dim, Value>    &src1,
+		    const mandy::TensorBase<rank, dim, Value> &src2)
   {
     return dealii::scalar_product (src1, *src2);
   }
@@ -118,11 +118,11 @@ namespace mandy
    *
    * @note This is a specialisation of deal.II's contract3 function.
    */
-  template <int rank_1, int rank_2, int dim, typename ValueType>
+  template <int rank_1, int rank_2, int dim, typename Value>
   inline
-    ValueType contract (const dealii::Tensor<rank_1, dim, ValueType>           &src1,
-			const mandy::TensorBase<rank_1+rank_2, dim, ValueType> &src2,
-			const dealii::Tensor<rank_2, dim, ValueType>           &src3)
+    Value contract (const dealii::Tensor<rank_1, dim, Value>           &src1,
+		    const mandy::TensorBase<rank_1+rank_2, dim, Value> &src2,
+		    const dealii::Tensor<rank_2, dim, Value>           &src3)
   {
     return dealii::contract3 (src1, *src2, src3);
   }
@@ -132,11 +132,11 @@ namespace mandy
    *
    * @note This is a specialisation of deal.II's contract3 function.
    */
-  template <int rank_1, int rank_2, int dim, typename ValueType>
-  inline
-    ValueType contract (const dealii::Tensor<rank_1, dim, ValueType>           &src1,
-			const mandy::TensorBase<rank_1+rank_2, dim, ValueType> &src2,
-			const mandy::TensorBase<rank_2, dim, ValueType>        &src3)
+  template <int rank_1, int rank_2, int dim, typename Value>
+    inline
+    Value contract (const dealii::Tensor<rank_1, dim, Value>           &src1,
+		    const mandy::TensorBase<rank_1+rank_2, dim, Value> &src2,
+		    const mandy::TensorBase<rank_2, dim, Value>        &src3)
   {
     return dealii::contract3 (src1, *src2, *src3);
   }

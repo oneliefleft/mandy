@@ -1,0 +1,7 @@
+template void
+mandy::MatrixCreator::create_mass_matrix<3, 3, double> (const dealii::FiniteElement<3,3>         &,
+							const dealii::DoFHandler<3,3>            &,
+							const dealii::Quadrature<3>              &,
+							dealii::PETScWrappers::MPI::SparseMatrix &,
+							dealii::ConstraintMatrix                 &,
+							MPI_Comm                                 &);

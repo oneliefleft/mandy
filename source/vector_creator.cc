@@ -36,7 +36,7 @@ namespace mandy
   namespace VectorCreator
   {
 
-    template<int dim, int spacedim = dim, typename ValueType = double>
+    template<int dim, int spacedim = dim, typename Value = double>
     void
     create_right_hand_side_vector (const dealii::FiniteElement<dim,spacedim> &finite_element,
 				   const dealii::DoFHandler<dim,spacedim>    &dof_handler,
@@ -54,10 +54,10 @@ namespace mandy
       const unsigned int dofs_per_cell = finite_element.dofs_per_cell;
       const unsigned int n_q_points    = quadrature.size ();
       
-      dealii::Vector<double> cell_vector (dofs_per_cell); 
+      dealii::Vector<Value> cell_vector (dofs_per_cell); 
       std::vector<dealii::types::global_dof_index> local_dof_indices (dofs_per_cell);
       
-      std::vector<double> function_values (n_q_points);
+      std::vector<Value> function_values (n_q_points);
       
       typename dealii::DoFHandler<dim>::active_cell_iterator
 	cell = dof_handler.begin_active (),
@@ -96,11 +96,4 @@ namespace mandy
   
 } // namepsace mandy
 
-template void
-mandy::VectorCreator::create_right_hand_side_vector<3, 3, double>  (const dealii::FiniteElement<3,3>   &,
-								    const dealii::DoFHandler<3,3>      &,
-								    const dealii::Quadrature<3>        &,
-								    dealii::PETScWrappers::MPI::Vector &,
-								    const dealii::ConstraintMatrix     &,
-								    const dealii::FunctionParser<3>    &,
-								    const MPI_Comm                     &);
+#include "vector_creator.inst"

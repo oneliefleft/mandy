@@ -33,16 +33,16 @@
 namespace mandy
 {
 
-  template<int rank, int dim, typename ValueType>
+  template<int rank, int dim, typename Value>
   void
-  TensorBase<rank, dim, ValueType>::distribute_coefficients ()
+  TensorBase<rank, dim, Value>::distribute_coefficients ()
   {
     AssertThrow (false, dealii::ExcPureFunctionCalled ());
   }
   
-  template<int rank, int dim, typename ValueType>
+  template<int rank, int dim, typename Value>
   bool
-  TensorBase<rank, dim, ValueType>::is_symmetric (const ValueType /*tolerance*/)
+  TensorBase<rank, dim, Value>::is_symmetric (const Value /*tolerance*/)
   {
     AssertThrow (false, dealii::ExcPureFunctionCalled ());
 
@@ -51,9 +51,9 @@ namespace mandy
     return false;
   }
   
-  template<int rank, int dim, typename ValueType>
+  template<int rank, int dim, typename Value>
   void
-  TensorBase<rank, dim, ValueType>::set_coefficients (std::vector<ValueType> &coefficients)
+  TensorBase<rank, dim, Value>::set_coefficients (std::vector<Value> &coefficients)
   {
     coefficients_.clear ();
     
@@ -61,16 +61,14 @@ namespace mandy
       coefficients_.push_back (coefficients[i]);
   }
   
-  template<int rank, int dim, typename ValueType>
+  template<int rank, int dim, typename Value>
   void
-  TensorBase<rank, dim, ValueType>::print ()
+  TensorBase<rank, dim, Value>::print ()
   {
     std::cout << this->tensor;
   }
   
 } // namepsace mandy
 
-template class mandy::TensorBase<1, 3, double>;
-template class mandy::TensorBase<2, 3, double>;
-template class mandy::TensorBase<3, 3, double>;
-template class mandy::TensorBase<4, 3, double>;
+#include "tensor_base.inst"
+
