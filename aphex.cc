@@ -223,6 +223,20 @@ int main (int argc, char *argv[])
 
       // else if (...)
 #endif      
+
+      std::vector<std::string> args (argv+1, argv+argc);
+      
+      AssertThrow (args.size ()>0, dealii::ExcMessage ("The number of input arguments must be greater than zero."));
+      
+      std::cout << std::endl << std::endl
+		<< "----------------------------------------------------"
+		<< std::endl
+		<< "Caught arguments: ";
+      for (unsigned int i=0; i<args.size (); ++i)
+	std::cout << std::endl << "   " << args[i];
+      std::cout  << std::endl
+		 << "----------------------------------------------------"
+		 << std::endl << std::endl;
       
       aphex::Aphex<3> aphex ("material.prm");
       aphex.run ();
