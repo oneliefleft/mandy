@@ -238,7 +238,7 @@ int main (int argc, char *argv[])
 		 << "----------------------------------------------------"
 		 << std::endl << std::endl;
       
-      aphex::Aphex<3> aphex ("material.prm");
+      aphex::Aphex<3> aphex (args[1]);
       aphex.run ();
     }
 
