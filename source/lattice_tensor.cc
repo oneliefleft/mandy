@@ -36,9 +36,28 @@ namespace mandy
   namespace Physics
   {
 
-    template<enum CrystalSymmetryGroup CSG, typename ValueType>
+    template<enum CrystalSymmetry crystal_symmetry, typename Value>
     void
-    LatticeTensor<CSG, ValueType>::distribute_coefficients ()
+    LatticeTensor<crystal_symmetry, Value>::distribute_coefficients ()
+    {
+      switch (crystal_symmetry)
+	{
+	case wurtzite:
+	  this->distribute_coefficients_wurtzite ();
+	  break;
+
+	// case zincblende:
+	//   this->distribute_coefficients_zincblende ();
+	//   break;
+
+	default:
+	  dealii::ExcNotImplemented ();
+	}
+    }
+
+    template<enum CrystalSymmetry crystal_symmetry, typename Value>
+    void
+    LatticeTensor<crystal_symmetry, Value>::distribute_coefficients_wurtzite ()
     {
       // There should be five independent coefficients.
       AssertThrow (this->coefficients_.size ()==2,
@@ -62,4 +81,4 @@ namespace mandy
 } // namepsace mandy
 
 template class
-mandy::Physics::LatticeTensor<mandy::CrystalSymmetryGroup::wurtzite, double>;
+mandy::Physics::LatticeTensor<mandy::Physics::CrystalSymmetry::wurtzite, double>;

@@ -31,7 +31,7 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/tensor.h>
 
-#include <mandy/crystal_symmetry_group.h>
+#include <mandy/crystal_symmetry.h>
 #include <mandy/tensor_base.h>
 
 #ifndef __mandy_elastic_tensor_h
@@ -47,10 +47,10 @@ namespace mandy
      * A class that describes the elastic tensor (or stress-strain
      * tensor).
      */ 
-    template <enum CrystalSymmetryGroup, typename ValueType = double>
+    template <enum CrystalSymmetry, typename Value = double>
       class ElasticTensor
       :
-      public mandy::TensorBase<4,3,ValueType>
+      public mandy::TensorBase<4, 3, Value>
       {
       public:
       
@@ -67,7 +67,7 @@ namespace mandy
       /**
        * Explicitly set symmetry of this tensor.
        */ 
-      bool is_symmetric (const ValueType tolerance = 1e-09);
+      bool is_symmetric (const Value tolerance = 1e-09);
       
     }; // ElasticTensor
     

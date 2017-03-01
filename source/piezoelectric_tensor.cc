@@ -36,9 +36,9 @@ namespace mandy
   namespace Physics
   {
 
-    template<enum CrystalSymmetryGroup CSG, typename ValueType>
+    template<enum CrystalSymmetry crystal_symmetry, typename Value>
     bool
-    PiezoelectricTensor<CSG, ValueType>::is_symmetric (const ValueType tolerance)
+    PiezoelectricTensor<crystal_symmetry, Value>::is_symmetric (const Value tolerance)
     {
       bool is_symmetric = true;
       
@@ -56,9 +56,9 @@ namespace mandy
       return is_symmetric;
     }
     
-    template<enum CrystalSymmetryGroup CSG, typename ValueType>
+    template<enum CrystalSymmetry crystal_symmetry, typename Value>
     void
-    PiezoelectricTensor<CSG, ValueType>::distribute_coefficients ()
+    PiezoelectricTensor<crystal_symmetry, Value>::distribute_coefficients ()
     {
       // There should be five independent coefficients.
       AssertThrow (this->coefficients_.size ()==3,
@@ -84,4 +84,4 @@ namespace mandy
 } // namepsace mandy
 
 template class
-mandy::Physics::PiezoelectricTensor<mandy::CrystalSymmetryGroup::wurtzite, double>;
+mandy::Physics::PiezoelectricTensor<mandy::Physics::CrystalSymmetry::wurtzite, double>;

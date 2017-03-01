@@ -43,8 +43,6 @@
 #include <mandy/matrix_creator.h>
 #include <mandy/vector_creator.h>
 
-#include <mandy/crystal_symmetry_group.h>
-
 #include <fstream>
 #include <iostream>
 

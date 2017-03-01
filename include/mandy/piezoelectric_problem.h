@@ -47,8 +47,6 @@
 #include <mandy/piezoelectric_tensor.h>
 #include <mandy/polarelectric_tensor.h>
 
-#include <mandy/crystal_symmetry_group.h>
-
 #include <fstream>
 #include <iostream>
 
@@ -211,7 +209,7 @@ namespace mandy
     /**
      * Tensor of dielectric coefficients.
      */
-    mandy::Physics::DielectricTensor<mandy::CrystalSymmetryGroup::wurtzite> dielectric_tensor;
+    mandy::Physics::DielectricTensor<mandy::Physics::CrystalSymmetry::wurtzite> dielectric_tensor;
 
     /**
      * Vector of dielectric coefficients.
@@ -221,7 +219,7 @@ namespace mandy
     /**
      * Tensor of piezoelectric coefficients.
      */
-    mandy::Physics::PiezoelectricTensor<mandy::CrystalSymmetryGroup::wurtzite> piezoelectric_tensor;
+    mandy::Physics::PiezoelectricTensor<mandy::Physics::CrystalSymmetry::wurtzite> piezoelectric_tensor;
 
     /**
      * Vector of piezoelectric coefficients.
@@ -231,7 +229,7 @@ namespace mandy
     /**
      * Tensor of polarelectric coefficients.
      */
-    mandy::Physics::PolarelectricTensor<mandy::CrystalSymmetryGroup::wurtzite> polarelectric_tensor;
+    mandy::Physics::PolarelectricTensor<mandy::Physics::CrystalSymmetry::wurtzite> polarelectric_tensor;
 
     /**
      * Vector of polarelectric coefficients.
@@ -241,7 +239,7 @@ namespace mandy
     /**
      * Tensor of lattice coefficients.
      */
-    mandy::Physics::LatticeTensor<mandy::CrystalSymmetryGroup::wurtzite> lattice_tensor;
+    mandy::Physics::LatticeTensor<mandy::Physics::CrystalSymmetry::wurtzite> lattice_tensor;
 
     /**
      * Vector of lattice coefficients.

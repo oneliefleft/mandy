@@ -31,7 +31,7 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/tensor.h>
 
-#include <mandy/crystal_symmetry_group.h>
+#include <mandy/crystal_symmetry.h>
 #include <mandy/tensor_base.h>
 
 #ifndef __mandy_polarelectric_tensor_h
@@ -46,10 +46,10 @@ namespace mandy
     /**
      * A class that describes the polarelectric (spontaneous polarization) tensor.
      */ 
-    template <enum CrystalSymmetryGroup, typename ValueType = double>
+    template <enum CrystalSymmetry, typename Value = double>
       class PolarelectricTensor
       :
-      public mandy::TensorBase<1,3,ValueType>
+      public mandy::TensorBase<1, 3, Value>
       {
       public:
       

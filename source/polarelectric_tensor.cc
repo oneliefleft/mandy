@@ -36,9 +36,9 @@ namespace mandy
   namespace Physics
   {
 
-    template<enum CrystalSymmetryGroup CSG, typename ValueType>
+    template<enum CrystalSymmetry crystal_symmetry, typename Value>
     void
-    PolarelectricTensor<CSG, ValueType>::distribute_coefficients ()
+    PolarelectricTensor<crystal_symmetry, Value>::distribute_coefficients ()
     {
       // There should be five independent coefficients.
       AssertThrow (this->coefficients_.size ()==1,
@@ -58,4 +58,4 @@ namespace mandy
 } // namepsace mandy
 
 template class
-mandy::Physics::PolarelectricTensor<mandy::CrystalSymmetryGroup::wurtzite, double>;
+mandy::Physics::PolarelectricTensor<mandy::Physics::CrystalSymmetry::wurtzite, double>;

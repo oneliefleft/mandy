@@ -28,18 +28,26 @@
 // 
 // -----------------------------------------------------------------------------
 
-#ifndef __mandy_crystal_symmetry_type_h
-#define __mandy_crystal_symmetry_type_h
+#ifndef __mandy_crystal_symmetry_h
+#define __mandy_crystal_symmetry_h
 
 namespace mandy
 {
-  
-  enum CrystalSymmetryGroup
+
+  namespace Physics
   {
-    zincblende,
-    wurtzite
-  };
+    
+    /**
+     * Enumeration of different crystal symmetries.
+     */
+    enum CrystalSymmetry
+    {
+      wurtzite,
+      zincblende
+    };
+
+  } // namespace Physics
   
 } // namespace mandy
 
-#endif // __mandy_crystal_symmetry_type_h
+#endif // __mandy_crystal_symmetry_h

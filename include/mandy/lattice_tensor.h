@@ -31,7 +31,7 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/tensor.h>
 
-#include <mandy/crystal_symmetry_group.h>
+#include <mandy/crystal_symmetry.h>
 #include <mandy/tensor_base.h>
 
 #ifndef __mandy_lattice_tensor_h
@@ -46,10 +46,10 @@ namespace mandy
     /**
      * A class that describes the lattice tensor.
      */ 
-    template <enum CrystalSymmetryGroup, typename ValueType = double>
+    template <enum CrystalSymmetry, typename Value = double>
       class LatticeTensor
       :
-      public mandy::TensorBase<2,3,ValueType>
+      public mandy::TensorBase<2, 3, Value>
       {
       public:
       
@@ -59,9 +59,16 @@ namespace mandy
       LatticeTensor () {};
       
       /**
-       * Distribute @p coefficients
+       * Distribute coefficients
        */ 
       void distribute_coefficients ();
+
+      private:
+
+      /**
+       * Distribute coefficients wurtzite.
+       */ 
+      void distribute_coefficients_wurtzite ();
       
     }; // LatticeTensor
     

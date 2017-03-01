@@ -31,7 +31,7 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/tensor.h>
 
-#include <mandy/crystal_symmetry_group.h>
+#include <mandy/crystal_symmetry.h>
 #include <mandy/tensor_base.h>
 
 #ifndef __mandy_dielectric_tensor_h
@@ -46,7 +46,7 @@ namespace mandy
     /**
      * A class that describes the dielectric tensor.
      */ 
-    template <enum CrystalSymmetryGroup, typename ValueType = double>
+    template <enum Physics::CrystalSymmetry, typename ValueType = double>
       class DielectricTensor
       :
       public mandy::TensorBase<2,3,ValueType>

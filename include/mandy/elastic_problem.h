@@ -43,8 +43,6 @@
 #include <mandy/elastic_tensor.h>
 #include <mandy/lattice_tensor.h>
 
-#include <mandy/crystal_symmetry_group.h>
-
 #include <fstream>
 #include <iostream>
 
@@ -192,7 +190,7 @@ namespace mandy
     /**
      * Tensor of elastic coefficients.
      */
-    mandy::Physics::ElasticTensor<mandy::CrystalSymmetryGroup::wurtzite> elastic_tensor;
+    mandy::Physics::ElasticTensor<mandy::Physics::CrystalSymmetry::wurtzite> elastic_tensor;
 
     /**
      * Vector of elastic coefficients.
@@ -202,7 +200,7 @@ namespace mandy
     /**
      * Tensor of lattice coefficients.
      */
-    mandy::Physics::LatticeTensor<mandy::CrystalSymmetryGroup::wurtzite> lattice_tensor;
+    mandy::Physics::LatticeTensor<mandy::Physics::CrystalSymmetry::wurtzite> lattice_tensor;
 
     /**
      * Vector of lattice coefficients.
